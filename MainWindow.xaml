@@ -1,0 +1,163 @@
+﻿<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        xmlns:local="clr-namespace:HouseHunter;assembly=HouseHunter"
+        xmlns:fsWpf="clr-namespace:FsWpf;assembly=FsWpf"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Width="1360" 
+        Height="768"
+        WindowStartupLocation="CenterScreen"
+        Title="House Hunter"
+        ResizeMode="CanResizeWithGrip">
+
+    <Window.Resources>
+
+        <local:MainWindowViewModel x:Key="RealData" />
+        <local:MainWindowViewModel x:Key="MockData" IsMock="true" />
+        
+        <DataTemplate x:Key="Vertical" DataType="local:Property">
+            <StackPanel>
+                <TextBlock TextWrapping="Wrap">
+                    <TextBlock.Text>
+                        <MultiBinding StringFormat="{}{1:N0}£ - {2}{0}{3} ({4}){0}{0}{5}{0}{0}{6}{0}{0}Nearby:{0}{7}{0}{0}Agency Phone: {8}{0}{0}Posted {9}" FallbackValue="No Selection">
+                            <Binding Source="{x:Static sys:Environment.NewLine}"/>
+                            <Binding Path="Price" />
+                            <Binding Path="Name" />
+                            <Binding Path="Address" />
+                            <Binding Path="LatLong" />
+                            <Binding Path="Features" Converter="{local:ListConverter}" />
+                            <Binding Path="Description" />
+                            <Binding Path="Nearby"  Converter="{local:ListWithIndentationConverter}" />
+                            <Binding Path="Phone" />
+                            <Binding Path="AddedOn" />
+                        </MultiBinding>
+                    </TextBlock.Text>
+                </TextBlock>
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="Horizontal" DataType="local:Property">
+            <Grid>
+                <fsWpf:NoWheelScrollViewer VerticalScrollBarVisibility="Disabled"
+                                           HorizontalScrollBarVisibility="Auto"
+                                           CanContentScroll="False"
+                                           Focusable="False">
+                    <ItemsControl ItemsSource="{Binding Photos}" Margin="0">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Image Source="{Binding}" Stretch="Uniform" Height="250" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </fsWpf:NoWheelScrollViewer>
+                <TextBlock VerticalAlignment="Top" 
+                           HorizontalAlignment="Left" 
+                           IsHitTestVisible="False" 
+                           FontWeight="Bold"
+                           Margin="5">
+                    <TextBlock.Text>
+                        <MultiBinding StringFormat="{}{1:N0}£{0}">
+                            <Binding Source="{x:Static sys:Environment.NewLine}"/>
+                            <Binding Path="Price" />
+                        </MultiBinding>
+                    </TextBlock.Text>
+                </TextBlock>
+            </Grid>
+        </DataTemplate>
+
+    </Window.Resources>
+
+    <DockPanel DataContext="{StaticResource RealData}" d:DataContext="{StaticResource MockData}">
+        <DockPanel.Resources>
+            <Style TargetType="TextBlock">
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
+            <Style TargetType="TextBox">
+                <Setter Property="Margin" Value="5,0" />
+            </Style>
+        </DockPanel.Resources>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,5">
+            <Button Width="35" Command="{Binding StartStopCommand}" Margin="5,0">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                        <Setter Property="Content" Value="Start" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                <Setter Property="Content" Value="Stop" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <TextBlock Margin="5,0" Text="{Binding Count}" />
+            <TextBlock Text="Bedrooms:" />
+            <TextBox Width="20" Text="{Binding MinBeds}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
+            <TextBlock Text="to" />
+            <TextBox Width="20" Text="{Binding MaxBeds}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />                
+            <TextBlock Text="Price per month" />
+            <TextBox Width="40" Text="{Binding MinPrice}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
+            <TextBlock Text="to" />
+            <TextBox Width="40" Text="{Binding MaxPrice}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
+            <TextBlock Text="Min. Photos"/>
+            <TextBox Width="20" Text="{Binding MinPhotos, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBlock Text="Containing" />
+            <TextBox Width="150" Text="{Binding Search, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBlock Text="but not" />
+            <TextBox Width="230" Text="{Binding NegativeSearch, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
+        </StackPanel>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="7*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="3*" />
+            </Grid.ColumnDefinitions>
+
+            <ListBox x:Name="list"
+                     ItemsSource="{Binding Properties}"                     
+                     BorderThickness="0"
+                     ScrollViewer.CanContentScroll="True"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     VirtualizingStackPanel.IsVirtualizing="True"
+                     VirtualizingStackPanel.VirtualizationMode="Standard"
+                     HorizontalContentAlignment="Stretch">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <ContentControl Content="{Binding Property}" ContentTemplate="{StaticResource Horizontal}" >
+                            <ContentControl.InputBindings>
+                                <MouseBinding Gesture="LeftDoubleClick" Command="{Binding OpenInBrowserCommand}" />                                
+                            </ContentControl.InputBindings>
+                        </ContentControl>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <TextBlock VerticalAlignment="Bottom" 
+                       HorizontalAlignment="Right"
+                       Margin="4"
+                       Text="Double click to open in browser, right click to remove from list" />
+
+            <GridSplitter ResizeDirection="Columns" Grid.Column="1" ResizeBehavior="PreviousAndNext" Width="1" Background="Gray" />
+
+            <ScrollViewer Grid.Column="2" DataContext="{Binding SelectedItem.Property, ElementName=list}" d:DataContext="{Binding Properties[0].Property, Source={StaticResource MockData}}">
+                <StackPanel>
+                    <ContentPresenter Margin="5" Content="{Binding}" ContentTemplate="{StaticResource Vertical}" />
+                    <ItemsControl ItemsSource="{Binding Photos}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Image Source="{Binding}" Stretch="Uniform" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </DockPanel>
+
+</Window>

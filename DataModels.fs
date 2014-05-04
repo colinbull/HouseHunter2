@@ -4,7 +4,7 @@ open System
 open System.IO
 open FSharp.Data
 open HtmlAgilityPack
-open Nessos.FsPickler
+open Newtonsoft.Json
 
 type LatLong = 
     { Lat : float
@@ -21,6 +21,7 @@ type LatLong =
     override x.ToString() = 
         sprintf "%f,%f" x.Lat x.Long
 
+[<CLIMutable>]
 type Property =
     { Url : string
       Name : string
@@ -36,7 +37,9 @@ type Property =
 
     override x.ToString() = sprintf "%A" x
 
-    member x.SearchableContent = [ x.Name; x.Description; x.Address ] @ x.Features @ x.Nearby
+    member x.GetSearchableContent() =
+        [ x.Name; x.Description; x.Address ] @ x.Features @ x.Nearby
+        |> List.filter ((<>) "")
 
     static member Mock = 
         { Url = ""
@@ -63,27 +66,30 @@ type Crawler(addProperty, bulkAddProperties, propertySites) =
     
     let add property = async {
         
-        lock allProperties <| fun () ->
-            allProperties := Map.add property.Url property !allProperties
-
-        do! addProperty property
+        let alreadyThere = 
+            lock allProperties <| fun () ->
+                if Map.containsKey property.Url !allProperties then
+                    true
+                else
+                    allProperties := Map.add property.Url property !allProperties
+                    false
+        
+        if not alreadyThere then
+            do! addProperty property
     }
 
-    let fsp = FsPickler()
-    let stateFilename = "properies.bin"
+    let stateFilename = "properies.json"
 
     let loadState() =
         if File.Exists stateFilename then
             try
-                using (File.OpenRead stateFilename) <| fun stream ->
-                    allProperties := fsp.Deserialize<_>(stream)
+                allProperties := JsonConvert.DeserializeObject<_>(File.ReadAllText stateFilename)
             with _ -> ()
-            !allProperties |> Map.toList |> List.map snd |> bulkAddProperties 
+            !allProperties |> Map.toList |> List.map snd |> bulkAddProperties
 
     let saveState() = 
         lock allProperties <| fun () ->
-            using (File.OpenWrite stateFilename) <| fun stream ->
-                fsp.Serialize(stream, !allProperties)
+            File.WriteAllText(stateFilename, JsonConvert.SerializeObject !allProperties)
 
     do loadState()
     

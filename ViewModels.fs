@@ -34,7 +34,7 @@ type MainWindowViewModel() as self =
                                       |> Array.exists (fun query -> text.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0))
     
     let propertyMatchesQuery query (property:Property) = 
-        property.SearchableContent
+        property.GetSearchableContent()
         |> List.exists (textMatchesQuery query)
 
     let updateCount() = 
@@ -105,9 +105,10 @@ type MainWindowViewModel() as self =
     let minPhotos = self.Factory.Backing(<@ self.MinPhotos @>, 3)
     let search = self.Factory.Backing(<@ self.Search @>, "")
     let negativeSearch = self.Factory.Backing(<@ self.NegativeSearch @>, "stratford | woolwich | croydon | peckham")
+    let isMock = self.Factory.Backing(<@ self.IsMock @>, false)
 
     do 
-        Application.Current.Exit.Add <| fun _ -> crawler.SaveState()
+        Application.Current.Exit.Add <| fun _ -> if not (self.IsMock) then crawler.SaveState()
         setFilter()
 
     member x.Properties = properties
@@ -123,7 +124,7 @@ type MainWindowViewModel() as self =
 
     member x.StartStopCommand = startStopCommand
 
-    member x.IsMock with set value = if value then properties.Add (PropertyViewModel crawler.MockProperty)
+    member x.IsMock with get() = isMock.Value and set value = isMock.Value <- value; if value then properties.Clear(); properties.Add (PropertyViewModel crawler.MockProperty)
 
 // TODO:
 //links (floorplan)

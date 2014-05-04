@@ -103,6 +103,13 @@
         <ScrollViewer Grid.Column="2" DataContext="{Binding SelectedItem.Property, ElementName=list}" d:DataContext="{Binding NewProperties[0].Property, Source={StaticResource MockData}}">
             <StackPanel>
                 <ContentPresenter Margin="5" Content="{Binding}" ContentTemplate="{StaticResource Vertical}" />
+                <ItemsControl ItemsSource="{Binding Links}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <ContentPresenter Content="{Binding Converter={local:HyperlinkConverter}}" Margin="5,2" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
                 <ItemsControl ItemsSource="{Binding Photos}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>

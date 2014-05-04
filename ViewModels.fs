@@ -5,7 +5,9 @@ open System.Collections.ObjectModel
 open System.Diagnostics
 open System.IO  
 open System.Windows
+open System.Windows.Controls
 open System.Windows.Data
+open System.Windows.Documents
 open System.Threading
 open HtmlAgilityPack
 open FsWpf
@@ -231,7 +233,6 @@ type MainWindowViewModel() as self =
                 propertiesViewModel.Add(propertySites.[0].ParsePropertyPage doc Property.Mock)
 
 // TODO:
-//links (floorplan)
 //distance to
 //TFL Zone
 
@@ -247,3 +248,12 @@ type ListWithIndentationConverter() =
         list
         |> List.map ((+) "    ")
         |> String.concat Environment.NewLine
+
+type HyperlinkConverter() =
+    inherit ConverterMarkupExtension<string*string, TextBlock>()
+    override x.Convert arg =
+        let text, url = arg
+        let hyperLink = Hyperlink(Run(text), NavigateUri = Uri url)
+        hyperLink.RequestNavigate.Add <| fun _ ->
+            Process.Start url |> ignore
+        TextBlock(hyperLink)

@@ -27,6 +27,7 @@ type Property =
       LatLong : LatLong
       Price : decimal
       Photos : string list
+      Links : (string*string) list
       Features : string list
       Nearby : string list
       Phone : string
@@ -46,6 +47,7 @@ type Property =
           LatLong = LatLong.parse "-1" "-1"
           Price = 1000M
           Photos = []
+          Links = []
           Features = []
           Nearby = [ "London Victoria (0.1 miles)" ]
           Phone = "02080000000"

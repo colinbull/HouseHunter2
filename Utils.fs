@@ -140,3 +140,9 @@ module HtmlAgilityPack =
         |> Seq.map (fun x -> (x?itemprop, x?itemtype), x)
         |> Map.ofSeq
     
+    let getMetaProperties (node:HtmlNode) = 
+        node.Descendants("meta")
+        |> Seq.filter (attr "property" >> (<>) "")
+        |> Seq.map (fun x -> x?property, x?content)
+        |> Map.ofSeq
+    

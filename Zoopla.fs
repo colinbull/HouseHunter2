@@ -7,7 +7,7 @@
 #r "HtmlAgilityPack.dll"
 #r "RegexProvider.dll"
 #load "Utils.fs"
-#load "DataModel.fs"
+#load "DataModels.fs"
 #else
 module Zoopla
 #endif
@@ -115,6 +115,7 @@ let parseListingItem (li:HtmlNode) =
       LatLong = latLong
       Price = price
       Photos = [ mainPhotoSmall ]
+      Links = []
       Features = []
       Nearby = nearby
       Phone = phone
@@ -151,18 +152,39 @@ let parsePropertyPage (doc:HtmlDocument) (property:Property) =
         |> Seq.map (attr "data-photo")
         |> Seq.toList
 
-    let features = 
+    let featureItems = 
         doc.DocumentNode.Descendants("h3")
         |> Seq.where (fun h3 -> hasText "Property info" h3 || hasText "Property features" h3)
-        |> Seq.collect (followingSibling "ul" >> elements "li" >> Seq.map innerText)
+        |> Seq.collect (followingSibling "ul" >> elements "li")
+
+    let featureText = ResizeArray<_>()
+    let featurePhotos = ResizeArray<_>()
+    let featureLinks = ResizeArray<_>()
+
+    for feature in featureItems do
+        let a = element "a" feature
+        if a = null then
+            featureText.Add (innerText feature)
+        else
+            let href = a?href
+            if href.EndsWith(".jpg") || href.EndsWith("png") then
+                featurePhotos.Add href
+            else
+                featureLinks.Add (innerText feature, href)
+
+    let attachments =
+        doc.DocumentNode.Descendants("h3")
+        |> Seq.where (hasText "Property info")
+        |> Seq.collect (followingSibling "ul" >> descendants "a" >> Seq.where (hasAttr "data-ga-category" "Listing attachments") >> Seq.map (attr "href"))
         |> Seq.toList
     
     { property with
         Name = name
         Description = description
         Address = address
-        Photos = photos
-        Features = features }
+        Photos = photos @ (Seq.toList featurePhotos)
+        Links = Seq.toList featureLinks
+        Features = Seq.toList featureText }
 
 #if INTERACTIVE
 parsePropertyPage doc property

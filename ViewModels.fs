@@ -3,29 +3,124 @@ namespace HouseHunter
 open System
 open System.Collections.ObjectModel
 open System.Diagnostics
+open System.IO  
 open System.Windows
 open System.Windows.Data
 open System.Threading
+open HtmlAgilityPack
 open FsWpf
 open FSharp.ViewModule.Core.ViewModel
+open Newtonsoft.Json
 
-type PropertyViewModel(property) as self = 
+type Status =
+    | New
+    | Shortlisted
+    | Discarded
+
+type PropertyViewModel(property:Property, status, onStatusChanged) as self = 
     inherit ViewModelBase()
 
+    let status = ref status
+
+    let changeStatus newStatus =
+        onStatusChanged !status newStatus self
+        status := newStatus
+
+    let addToShortlistCommand = 
+        self.Factory.CommandSyncChecked(
+            (fun () -> changeStatus Status.Shortlisted),
+            (fun () -> !status <> Status.Shortlisted)) 
+
+    let discardCommand = 
+        self.Factory.CommandSyncChecked(
+            (fun () -> changeStatus Status.Discarded),
+            (fun () -> !status <> Status.Discarded)) 
+
     let openInBrowserCommand = 
-        self.Factory.CommandSync <| fun () ->
-            Process.Start property.Url |> ignore
+        self.Factory.CommandSyncChecked(
+            (fun () -> Process.Start property.Url |> ignore),
+            (fun () -> !status = Status.Shortlisted)) 
+
+    let selectCommand =
+        self.Factory.CommandSyncChecked(
+            (fun () -> if addToShortlistCommand.CanExecute()
+                       then addToShortlistCommand.Execute() 
+                       else openInBrowserCommand.Execute()),
+            (fun () -> addToShortlistCommand.CanExecute() || openInBrowserCommand.CanExecute())) 
 
     member x.Property = property
 
-    member x.OpenInBrowserCommand = openInBrowserCommand
+    member x.SelectCommand = selectCommand
+    member x.DiscardCommand = discardCommand
+
+    static member GetProperty(x:PropertyViewModel) = x.Property
+    static member GetUrl(x:PropertyViewModel) = x.Property.Url
+
+type PropertiesViewModel() =
+    
+    let newProperties = ObservableCollection<_>()
+    let shortlistedProperties = ObservableCollection<_>()
+    let discardedProperties = ObservableCollection<_>()
+
+    let getCollection status =
+        match status with
+        | New -> newProperties
+        | Shortlisted -> shortlistedProperties
+        | Discarded -> discardedProperties
+
+    let onStatusChanged oldStatus newStatus property =
+        let removed = (getCollection oldStatus).Remove property
+        assert removed
+        (getCollection newStatus).Add property
+
+    let add status property = 
+        (getCollection status).Add(PropertyViewModel(property, status, onStatusChanged))
+
+    let stateFilename = "properties.json"
+    let stateFilename2 = "properties.bin"
+
+    let loadState() =
+        if File.Exists stateFilename then
+            let newProps, shortlistedProps, discardedProps =
+                JsonConvert.DeserializeObject<_>(File.ReadAllText stateFilename)
+            List.iter (add Status.New) newProps
+            List.iter (add Status.Shortlisted) shortlistedProps
+            List.iter (add Status.Discarded) discardedProps
+
+    let saveState() = 
+        let state =
+            Seq.map PropertyViewModel.GetProperty newProperties,
+            Seq.map PropertyViewModel.GetProperty shortlistedProperties,
+            Seq.map PropertyViewModel.GetProperty discardedProperties
+        File.WriteAllText(stateFilename, JsonConvert.SerializeObject state)
+
+    do loadState()
+
+    member x.NewProperties = newProperties
+    member x.ShortlistedProperties = shortlistedProperties
+    member x.DiscardedProperties = discardedProperties
+
+    member x.SeenPropertyUrls =
+        Seq.concat
+            [ Seq.map PropertyViewModel.GetUrl newProperties
+              Seq.map PropertyViewModel.GetUrl shortlistedProperties
+              Seq.map PropertyViewModel.GetUrl discardedProperties ]
+        |> Seq.toList
+
+    member x.TotalCount = 
+        newProperties.Count + shortlistedProperties.Count + discardedProperties.Count
+
+    member x.Add property = add Status.New property
+
+    member x.SaveState() = saveState()
 
 type MainWindowViewModel() as self = 
     inherit ViewModelBase()
 
-    let properties = ObservableCollection<_>()
-    let view = CollectionViewSource.GetDefaultView(properties) :?> ListCollectionView
+    let propertiesViewModel = PropertiesViewModel()
 
+    let newPropertiesView = CollectionViewSource.GetDefaultView(propertiesViewModel.NewProperties) :?> ListCollectionView
+    
     let textMatchesQuery (query:string) (text:string) = 
         query.Split([|'&'|], StringSplitOptions.RemoveEmptyEntries)
         |> Array.forall (fun query -> query.Split([|'|'|], StringSplitOptions.RemoveEmptyEntries)
@@ -38,38 +133,35 @@ type MainWindowViewModel() as self =
         |> List.exists (textMatchesQuery query)
 
     let updateCount() = 
-        self.Count <- sprintf "%d/%d" view.Count properties.Count
+        self.CountStr <- sprintf "%d/%d" newPropertiesView.Count propertiesViewModel.TotalCount
 
     let setFilter() =
-        view.Filter <- fun property -> 
+        newPropertiesView.Filter <- fun property -> 
             let property = (property :?> PropertyViewModel).Property
             let showListing = 
                 property.Photos.Length >= self.MinPhotos &&
                 property.Price >= self.MinPrice &&
                 property.Price <= self.MaxPrice &&
                 propertyMatchesQuery self.Search property &&
-                not (propertyMatchesQuery self.NegativeSearch property)
+                (self.NegativeSearch = "" || not (propertyMatchesQuery self.NegativeSearch property))
             showListing
         updateCount()
 
     let refreshFilter() =
-        view.Refresh()
+        newPropertiesView.Refresh()
         updateCount()
 
     let context = SynchronizationContext.Current
 
     let addProperty property = async {
         do! Async.SwitchToContext context
-        properties.Add (PropertyViewModel property)
+        propertiesViewModel.Add(property)
         updateCount()
         do! Async.SwitchToThreadPool()
     }
 
-    let bulkAddProperties propertyBatch = 
-        for property in propertyBatch do
-            properties.Add (PropertyViewModel property)
-
-    let crawler = Crawler(addProperty, bulkAddProperties, [ Zoopla.T() ])
+    let propertySites = [ Zoopla.T() :> IPropertySite ]
+    let crawler = Crawler(propertiesViewModel.SeenPropertyUrls, addProperty, propertySites)
 
     let currentCts : CancellationTokenSource option ref = ref None
 
@@ -96,7 +188,7 @@ type MainWindowViewModel() as self =
                 onStarted cts
                 Async.Start(computation, cts.Token)
 
-    let count = self.Factory.Backing(<@ self.Count @>, "0/0")
+    let countStr = self.Factory.Backing(<@ self.CountStr @>, "0/0")
     let isRunning = self.Factory.Backing(<@ self.IsRunning @>, false)
     let minPrice = self.Factory.Backing(<@ self.MinPrice @>, 1000M)
     let maxPrice = self.Factory.Backing(<@ self.MaxPrice @>, 1600M)
@@ -108,30 +200,40 @@ type MainWindowViewModel() as self =
     let isMock = self.Factory.Backing(<@ self.IsMock @>, false)
 
     do 
-        Application.Current.Exit.Add <| fun _ -> if not (self.IsMock) then crawler.SaveState()
+        Application.Current.Exit.Add <| fun _ -> if not (self.IsMock) then propertiesViewModel.SaveState()
         setFilter()
 
-    member x.Properties = properties
-    member x.Count with get() = count.Value and set value = count.Value <- value
+    member x.NewProperties = propertiesViewModel.NewProperties
+    member x.ShortlistedProperties = propertiesViewModel.ShortlistedProperties
+    member x.DiscardedProperties = propertiesViewModel.DiscardedProperties
+    
+    member x.CountStr with get() = countStr.Value and set value = countStr.Value <- value
     member x.IsRunning with get() = isRunning.Value and set value = isRunning.Value <- value
-    member x.MinPrice with get() = minPrice.Value and set value = minPrice.Value <- value
-    member x.MaxPrice with get() = maxPrice.Value and set value = maxPrice.Value <- value
-    member x.MinBeds with get() = minBeds.Value and set value = minBeds.Value <- value
-    member x.MaxBeds with get() = maxBeds.Value and set value = maxBeds.Value <- value
+    member x.MinPrice with get() = minPrice.Value and set value = minPrice.Value <- value; refreshFilter()
+    member x.MaxPrice with get() = maxPrice.Value and set value = maxPrice.Value <- value; refreshFilter()
+    member x.MinBeds with get() = minBeds.Value and set value = minBeds.Value <- value; refreshFilter()
+    member x.MaxBeds with get() = maxBeds.Value and set value = maxBeds.Value <- value; refreshFilter()
     member x.MinPhotos with get() = minPhotos.Value and set value = minPhotos.Value <- value; refreshFilter()
     member x.Search with get() = search.Value and set value = search.Value <- value; refreshFilter()
     member x.NegativeSearch with get() = negativeSearch.Value and set value = negativeSearch.Value <- value; refreshFilter()
 
     member x.StartStopCommand = startStopCommand
 
-    member x.IsMock with get() = isMock.Value and set value = isMock.Value <- value; if value then properties.Clear(); properties.Add (PropertyViewModel crawler.MockProperty)
+    member x.IsMock
+        with get() = isMock.Value 
+        and set value = 
+            isMock.Value <- value
+            if value then                
+                let doc = 
+                    Path.Combine(__SOURCE_DIRECTORY__, "property.html")
+                    |> File.ReadAllText
+                    |> HtmlDocument.Parse                
+                propertiesViewModel.Add(propertySites.[0].ParsePropertyPage doc Property.Mock)
 
 // TODO:
 //links (floorplan)
 //distance to
 //TFL Zone
-//new/favorites/deleted
-//save state
 
 type ListConverter() = 
     inherit ConverterToStringMarkupExtension<string list>()

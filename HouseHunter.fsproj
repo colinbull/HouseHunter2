@@ -59,6 +59,8 @@
     <Compile Include="DataModels.fs" />
     <Compile Include="Zoopla.fs" />
     <Compile Include="ViewModels.fs" />
+    <Resource Include="PropertyList.xaml" />
+    <Compile Include="PropertyList.xaml.fs" />
     <Resource Include="MainWindow.xaml" />
     <Resource Include="App.xaml" />
     <Compile Include="App.fs" />

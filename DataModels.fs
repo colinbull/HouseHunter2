@@ -4,6 +4,7 @@ open System
 open System.IO
 open FSharp.Data
 open HtmlAgilityPack
+open Nessos.FsPickler
 
 type LatLong = 
     { Lat : float
@@ -56,8 +57,36 @@ type IPropertySite =
     abstract ParseListingPage : doc:HtmlDocument -> properties:Property seq * nextPageUrl:string option
     abstract ParsePropertyPage : doc:HtmlDocument -> property:Property -> Property
 
-type Crawler(addProperty, propertySites) = 
+type Crawler(addProperty, bulkAddProperties, propertySites) = 
 
+    let allProperties = ref Map.empty
+    
+    let add property = async {
+        
+        lock allProperties <| fun () ->
+            allProperties := Map.add property.Url property !allProperties
+
+        do! addProperty property
+    }
+
+    let fsp = FsPickler()
+    let stateFilename = "properies.bin"
+
+    let loadState() =
+        if File.Exists stateFilename then
+            try
+                using (File.OpenRead stateFilename) <| fun stream ->
+                    allProperties := fsp.Deserialize<_>(stream)
+            with _ -> ()
+            !allProperties |> Map.toList |> List.map snd |> bulkAddProperties 
+
+    let saveState() = 
+        lock allProperties <| fun () ->
+            using (File.OpenWrite stateFilename) <| fun stream ->
+                fsp.Serialize(stream, !allProperties)
+
+    do loadState()
+    
     let rec processPage (propertySite:IPropertySite) url = async {
 
         Console.WriteLine(sprintf "%s" url)
@@ -67,7 +96,7 @@ type Crawler(addProperty, propertySites) =
     
         let properties, nextPageUrl = propertySite.ParseListingPage doc
 
-        let workers = properties |> Seq.map (fun property -> async {
+        let childJobs = properties |> Seq.map (fun property -> async {
 
             let url = property.Url
             Console.WriteLine(sprintf "%s" url)
@@ -76,12 +105,11 @@ type Crawler(addProperty, propertySites) =
             let doc = HtmlDocument.Parse html
                     
             let property = propertySite.ParsePropertyPage doc property
-
-            do! addProperty property
+            do! add property
         })
 
-        for worker in workers do
-            do! worker |> Async.StartChild |> Async.Ignore
+        for job in childJobs do
+            do! job |> Async.StartChild |> Async.Ignore
         
         match nextPageUrl with
         | Some nextPageUrl -> return! processPage propertySite nextPageUrl
@@ -100,6 +128,8 @@ type Crawler(addProperty, propertySites) =
             Path.Combine(__SOURCE_DIRECTORY__, "property.html")
             |> File.ReadAllText
             |> HtmlDocument.Parse
-        let property = Property.Mock
-        propertySites.[0].ParsePropertyPage doc property
-        property
+        propertySites.[0].ParsePropertyPage doc Property.Mock
+
+    member x.SaveState() =
+        saveState()
+

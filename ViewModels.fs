@@ -3,6 +3,7 @@ namespace HouseHunter
 open System
 open System.Collections.ObjectModel
 open System.Diagnostics
+open System.Windows
 open System.Windows.Data
 open System.Threading
 open FsWpf
@@ -36,31 +37,39 @@ type MainWindowViewModel() as self =
         property.SearchableContent
         |> List.exists (textMatchesQuery query)
 
-    do view.Filter <- (fun property -> 
-        let property = (property :?> PropertyViewModel).Property
-        let showListing = 
-          property.Photos.Length >= self.MinPhotos &&
-          property.Price >= self.MinPrice &&
-          property.Price <= self.MaxPrice &&
-          propertyMatchesQuery self.Search property &&
-          not (propertyMatchesQuery self.NegativeSearch property)
-        showListing)
-
     let updateCount() = 
         self.Count <- sprintf "%d/%d" view.Count properties.Count
+
+    let setFilter() =
+        view.Filter <- fun property -> 
+            let property = (property :?> PropertyViewModel).Property
+            let showListing = 
+                property.Photos.Length >= self.MinPhotos &&
+                property.Price >= self.MinPrice &&
+                property.Price <= self.MaxPrice &&
+                propertyMatchesQuery self.Search property &&
+                not (propertyMatchesQuery self.NegativeSearch property)
+            showListing
+        updateCount()
 
     let refreshFilter() =
         view.Refresh()
         updateCount()
 
     let context = SynchronizationContext.Current
+
     let addProperty property = async {
         do! Async.SwitchToContext context
         properties.Add (PropertyViewModel property)
         updateCount()
         do! Async.SwitchToThreadPool()
     }
-    let crawler = Crawler(addProperty, [ Zoopla.T() ])
+
+    let bulkAddProperties propertyBatch = 
+        for property in propertyBatch do
+            properties.Add (PropertyViewModel property)
+
+    let crawler = Crawler(addProperty, bulkAddProperties, [ Zoopla.T() ])
 
     let currentCts : CancellationTokenSource option ref = ref None
 
@@ -96,6 +105,10 @@ type MainWindowViewModel() as self =
     let minPhotos = self.Factory.Backing(<@ self.MinPhotos @>, 3)
     let search = self.Factory.Backing(<@ self.Search @>, "")
     let negativeSearch = self.Factory.Backing(<@ self.NegativeSearch @>, "stratford | woolwich | croydon | peckham")
+
+    do 
+        Application.Current.Exit.Add <| fun _ -> crawler.SaveState()
+        setFilter()
 
     member x.Properties = properties
     member x.Count with get() = count.Value and set value = count.Value <- value

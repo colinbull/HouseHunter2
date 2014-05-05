@@ -9,6 +9,7 @@
         Height="768"
         WindowStartupLocation="CenterScreen"
         Title="House Hunter"
+        Icon="HouseHunter.ico"
         ResizeMode="CanResizeWithGrip">
 
     <Window.DataContext>

@@ -68,6 +68,7 @@
     <Resource Include="App.xaml" />
     <Compile Include="App.fs" />
     <None Include="property.html" />
+    <Resource Include="HouseHunter.ico" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Data">

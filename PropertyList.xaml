@@ -104,6 +104,7 @@
             <StackPanel>
                 <ContentPresenter Content="{Binding Property.Url, Converter={local:HyperlinkConverterWithParameter}, ConverterParameter=Property}" Margin="5,2" />
                 <ContentPresenter Content="{Binding MapUrl, Converter={local:HyperlinkConverterWithParameter}, ConverterParameter=Map}" Margin="5,2" />
+                <ContentPresenter Content="{Binding DirectionsUrl, Converter={local:HyperlinkConverterWithParameter}, ConverterParameter=Directions}" Margin="5,2" />
                 <ContentPresenter Margin="5" Content="{Binding Property}" ContentTemplate="{StaticResource Vertical}" />
                 <ItemsControl ItemsSource="{Binding Property.Links}">
                     <ItemsControl.ItemTemplate>

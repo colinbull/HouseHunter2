@@ -21,7 +21,7 @@ module private DateHelpers =
 type GoogleMapsQuery =     
     | GoogleMapsQuery of center:LatLong
     | GoogleMapsDirections of source:LatLong * destination:LatLong * date:DateTime
-    | GoogleMapsDirectionsAt9amNextWorkDay of srouce:LatLong * destination:LatLong
+    | GoogleMapsDirectionsAt9amNextWorkDay of source:LatLong * destination:LatLong
     
     member x.Url =
         let baseUrl = "http://maps.google.co.uk/"

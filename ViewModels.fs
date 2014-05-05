@@ -42,8 +42,11 @@ type PropertyViewModel(property:Property, status, onStatusChanged) as self =
     let openInBrowserCommand = 
         self.Factory.CommandSyncChecked(
             (fun () -> 
-                property.Url |> Process.Start |> ignore
-                (self.MapUrl : string) |> Process.Start |> ignore),
+                Process.Start(property.Url) |> ignore
+                Process.Start(self.MapUrl:string) |> ignore
+                match self.DirectionsUrl with
+                | Some url -> Process.Start(url:string) |> ignore
+                | None -> ()),
             (fun () -> !status = Status.Shortlisted)) 
 
     let selectCommand =
@@ -54,6 +57,8 @@ type PropertyViewModel(property:Property, status, onStatusChanged) as self =
             (fun () -> addToShortlistCommand.CanExecute() || openInBrowserCommand.CanExecute())) 
     
     let commuteDuration = self.Factory.Backing(<@ self.CommuteDuration @>, None)
+
+    do self.DependencyTracker.AddPropertyDependencies(<@@ self.DirectionsUrl @@>, [ <@@ self.CommuteDuration @@> ])
 
     static let bedroomMatcher = new Regex<"(?<Bedrooms>\d{1,3}) bedroom">()
     let numBedrooms = 
@@ -75,6 +80,11 @@ type PropertyViewModel(property:Property, status, onStatusChanged) as self =
 
     member x.MapUrl =
         (GoogleMapsQuery x.Property.LatLong).Url
+
+    member x.DirectionsUrl = 
+        match x.CommuteDuration with
+        | Some (workLocationLatLong, _) -> Some <| GoogleMapsDirectionsAt9amNextWorkDay(x.Property.LatLong, workLocationLatLong).Url
+        | None -> None        
 
     member x.SelectCommand = selectCommand
     member x.DiscardCommand = discardCommand

@@ -66,7 +66,9 @@ let parseListingItem (li:HtmlNode) =
         |> Seq.find (hasClass "listing-results-price text-price")
         |> innerText
         |> (fun str -> pcmMatcher.Match(str).PCM.Value)
-        |> Decimal.Parse
+        |> Decimal.TryParse
+        |> Option.fromTryParse
+        |> Option.get 0M
         
     let mainPhotoSmall = props.["photo", ""]?src
         

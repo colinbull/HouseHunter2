@@ -65,38 +65,45 @@ type Crawler(processedPropertyUrls, addProperty, propertySites) =
     
     let rec processPage (propertySite:IPropertySite) url = async {
 
-        Console.WriteLine(sprintf "%s" url)
+        try
+
+            let! html = Http.AsyncRequestString url
+            let doc = HtmlDocument.Parse html
     
-        let! html = Http.AsyncRequestString url
-        let doc = HtmlDocument.Parse html
-    
-        let properties, nextPageUrl = propertySite.ParseListingPage doc
+            let properties, nextPageUrl = propertySite.ParseListingPage doc
 
-        let childJobs = 
-            properties 
-            |> Seq.where (fun p -> not <| (!processedPropertyUrls).Contains p.Url)
-            |> Seq.map (fun property -> async {
+            let childJobs = 
+                properties 
+                |> Seq.where (fun p -> not <| (!processedPropertyUrls).Contains p.Url)
+                |> Seq.map (fun property -> async {
 
-                let url = property.Url
-                Console.WriteLine(sprintf "%s" url)
-
-                let! html = Http.AsyncRequestString url
-                let doc = HtmlDocument.Parse html
-
-                let property = propertySite.ParsePropertyPage doc property
+                    let url = property.Url
                     
-                do! addProperty property
+                    try
+                    
+                        let! html = Http.AsyncRequestString url
+                        let doc = HtmlDocument.Parse html
 
-                lock processedPropertyUrls <| fun () ->
-                    processedPropertyUrls := (!processedPropertyUrls).Add property.Url
-            })
+                        let property = propertySite.ParsePropertyPage doc property
+                    
+                        do! addProperty property
 
-        for job in childJobs do
-            do! job |> Async.StartChild |> Async.Ignore
+                        lock processedPropertyUrls <| fun () ->
+                            processedPropertyUrls := (!processedPropertyUrls).Add property.Url
+
+                    with e ->
+                        Console.WriteLine (sprintf "Failed to parse %s:\n%O" url e)
+                })
+
+            for job in childJobs do
+                do! job |> Async.StartChild |> Async.Ignore
         
-        match nextPageUrl with
-        | Some nextPageUrl -> return! processPage propertySite nextPageUrl
-        | None -> ()
+            match nextPageUrl with
+            | Some nextPageUrl -> return! processPage propertySite nextPageUrl
+            | None -> ()
+        
+        with e -> 
+            Console.WriteLine (sprintf "Failed to parse %s:\n%O" url e)
     }
 
     member x.Crawl args =

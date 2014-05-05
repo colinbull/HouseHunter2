@@ -9,6 +9,7 @@ module Option =
     let mapString f = Option.map f >> get ""
     let mapSprintf formatStr = mapString (sprintf formatStr)
     let mapList f = Option.map f >> get []
+    let fromTryParse (success, value) = if success then Some value else None
 
 module String =
     

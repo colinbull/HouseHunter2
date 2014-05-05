@@ -3,6 +3,15 @@
 open HtmlAgilityPack
 open FSharp.RegexProvider
 
+[<AutoOpen>]
+module Operators =
+
+    let (>>||>>) f1 f2 =
+        fun x -> f1 x || f2 x
+
+    let (>>&&>>) f1 f2 =
+        fun x -> f1 x && f2 x
+
 module Option = 
     
     let get defaultValue opt = defaultArg opt defaultValue
@@ -111,7 +120,7 @@ module HtmlAgilityPack =
         |> String.trim
 
     let innerText (node : HtmlNode) = 
-        node.Descendants()
+        node.DescendantsAndSelf()
         |> Seq.filter (fun n -> not (n.HasChildNodes))
         |> Seq.map (fun n -> if hasTagName "br" n then "\n" else n.InnerText)
         |> String.concat ""

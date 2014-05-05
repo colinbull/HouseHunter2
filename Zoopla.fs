@@ -156,7 +156,7 @@ let parsePropertyPage (doc:HtmlDocument) (property:Property) =
 
     let featureItems = 
         doc.DocumentNode.Descendants("h3")
-        |> Seq.where (fun h3 -> hasText "Property info" h3 || hasText "Property features" h3)
+        |> Seq.where (hasText "Property info" >>||>> hasText "Property features")
         |> Seq.collect (followingSibling "ul" >> elements "li")
 
     let featureText = ResizeArray<_>()

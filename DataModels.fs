@@ -18,6 +18,7 @@ type LatLong =
                  Long = double location.Lng } }
     override x.ToString() = 
         sprintf "%f,%f" x.Lat x.Long
+    static member Default = { Lat = 0.; Long = 0. }
 
 type Property =
     { Url : string
@@ -44,7 +45,7 @@ type Property =
           Name = ""
           Description = ""
           Address = ""
-          LatLong = LatLong.parse "-1" "-1"
+          LatLong = LatLong.Default
           Price = 1000M
           Photos = []
           Links = []
@@ -65,6 +66,7 @@ type Crawler(processedPropertyUrls, addProperty, propertySites) =
     
     let rec processPage (propertySite:IPropertySite) url = async {
 
+        //Console.WriteLine (sprintf "Processing %s" url)
         try
 
             let! html = Http.AsyncRequestString url
@@ -79,6 +81,7 @@ type Crawler(processedPropertyUrls, addProperty, propertySites) =
 
                     let url = property.Url
                     
+                    //Console.WriteLine (sprintf "Processing %s" url)
                     try
                     
                         let! html = Http.AsyncRequestString url

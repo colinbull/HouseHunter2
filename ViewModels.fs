@@ -198,7 +198,7 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel) as self =
             calcCommuteDistance workLocationLatLong propertyViewModel |> Async.Start
     }
 
-    let crawler = Crawler(propertiesViewModel.SeenPropertyUrls, addProperty, [ Zoopla.T() ])
+    let crawler = Crawler(propertiesViewModel.SeenPropertyUrls, addProperty, [ Zoopla.T(); RightMove.T() ])
 
     let currentCts : CancellationTokenSource option ref = ref None
 
@@ -275,7 +275,7 @@ type MockMainWindowViewModel() =
             |> HtmlDocument.Parse
         let mockProperty = (Zoopla.T() :> IPropertySite).ParsePropertyPage doc Property.Mock
         let propertyViewModel = propertiesViewModel.Add mockProperty
-        propertyViewModel.CommuteDuration <- Some (LatLong.parse "-1" "-1", 25)
+        propertyViewModel.CommuteDuration <- Some (LatLong.Default, 25)
         propertiesViewModel
 
 type ListConverter() = 

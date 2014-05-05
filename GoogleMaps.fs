@@ -51,6 +51,6 @@ type GoogleMapsQuery =
             let minutes = Int32.Parse parts.[1]
             return hours * 60 + minutes
         else
-            failwithf "Uneexpected result: %s" str
-            return Unchecked.defaultof<_>()
+            failwithf "Unexpected result: %s" str
+            return Unchecked.defaultof<_>
     }

@@ -60,6 +60,7 @@
     <Compile Include="Utils.fs" />
     <Compile Include="DataModels.fs" />
     <Compile Include="Zoopla.fs" />
+    <Compile Include="RightMove.fs" />
     <Compile Include="GoogleMaps.fs" />
     <Compile Include="ViewModels.fs" />
     <Resource Include="PropertyList.xaml" />

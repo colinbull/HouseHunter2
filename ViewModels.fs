@@ -44,7 +44,10 @@ type PropertyViewModel(property:Property, status, onStatusChanged) as self =
             (fun () -> 
                 Process.Start(property.Url) |> ignore
                 Process.Start(self.MapUrl:string) |> ignore
-                match self.DirectionsUrl with
+                match self.DirectionsUrl1 with
+                | Some url -> Process.Start(url:string) |> ignore
+                | None -> ()
+                match self.DirectionsUrl2 with
                 | Some url -> Process.Start(url:string) |> ignore
                 | None -> ()),
             (fun () -> !status = Status.Shortlisted)) 
@@ -56,9 +59,11 @@ type PropertyViewModel(property:Property, status, onStatusChanged) as self =
                        else openInBrowserCommand.Execute()),
             (fun () -> addToShortlistCommand.CanExecute() || openInBrowserCommand.CanExecute())) 
     
-    let commuteDuration = self.Factory.Backing(<@ self.CommuteDuration @>, None)
+    let commuteDuration1 = self.Factory.Backing(<@ self.CommuteDuration1 @>, None)
+    let commuteDuration2 = self.Factory.Backing(<@ self.CommuteDuration2 @>, None)
 
-    do self.DependencyTracker.AddPropertyDependencies(<@@ self.DirectionsUrl @@>, [ <@@ self.CommuteDuration @@> ])
+    do self.DependencyTracker.AddPropertyDependencies(<@@ self.DirectionsUrl1 @@>, [ <@@ self.CommuteDuration1 @@> ])
+    do self.DependencyTracker.AddPropertyDependencies(<@@ self.DirectionsUrl2 @@>, [ <@@ self.CommuteDuration2 @@> ])
 
     static let bedroomMatcher = new Regex<"(?<Bedrooms>\d{1,3}) bedroom">()
     let numBedrooms = 
@@ -68,7 +73,8 @@ type PropertyViewModel(property:Property, status, onStatusChanged) as self =
             |> Option.fromTryParse 
             |> Option.get 0
 
-    member x.CommuteDuration with get() = commuteDuration.Value and set value = commuteDuration.Value <- value
+    member x.CommuteDuration1 with get() = commuteDuration1.Value and set value = commuteDuration1.Value <- value
+    member x.CommuteDuration2 with get() = commuteDuration2.Value and set value = commuteDuration2.Value <- value
 
     member x.NumBedrooms = numBedrooms.Value
 
@@ -81,9 +87,14 @@ type PropertyViewModel(property:Property, status, onStatusChanged) as self =
     member x.MapUrl =
         (GoogleMapsQuery x.Property.LatLong).Url
 
-    member x.DirectionsUrl = 
-        match x.CommuteDuration with
-        | Some (workLocationLatLong, _) -> Some <| GoogleMapsDirectionsAt9amNextWorkDay(x.Property.LatLong, workLocationLatLong).Url
+    member x.DirectionsUrl1 = 
+        match x.CommuteDuration1 with
+        | Some (latLong, _) -> Some <| GoogleMapsDirectionsAt9amNextWorkDay(x.Property.LatLong, latLong).Url
+        | None -> None        
+
+    member x.DirectionsUrl2 = 
+        match x.CommuteDuration2 with
+        | Some (latLong, _) -> Some <| GoogleMapsDirectionsAt9amNextWorkDay(x.Property.LatLong, latLong).Url
         | None -> None        
 
     member x.SelectCommand = selectCommand
@@ -116,9 +127,10 @@ type PropertiesViewModel() as self =
     let stateFilename = "properties.json"
 
     let loadState() =
-        let add status (property, commuteDuration) =
+        let add status (property, commuteDuration1, commuteDuration2) =
             let propertyViewModel = add status property
-            propertyViewModel.CommuteDuration <- commuteDuration
+            propertyViewModel.CommuteDuration1 <- commuteDuration1
+            propertyViewModel.CommuteDuration2 <- commuteDuration2
         if File.Exists stateFilename then
             let newProps, shortlistedProps, discardedProps =
                 JsonConvert.DeserializeObject<_>(File.ReadAllText stateFilename)
@@ -128,7 +140,7 @@ type PropertiesViewModel() as self =
 
     let saveState() = 
         let getState (propertyViewModel:PropertyViewModel) = 
-            propertyViewModel.Property, propertyViewModel.CommuteDuration
+            propertyViewModel.Property, propertyViewModel.CommuteDuration1, propertyViewModel.CommuteDuration2
         let state =
             Seq.map getState newProperties,
             Seq.map getState shortlistedProperties,
@@ -164,7 +176,8 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel) as self =
     let newPropertiesView = CollectionViewSource.GetDefaultView(propertiesViewModel.NewProperties) :?> ListCollectionView
     do 
         newPropertiesView.IsLiveFiltering <- Nullable true
-        newPropertiesView.LiveFilteringProperties.Add("CommuteDuration")
+        newPropertiesView.LiveFilteringProperties.Add("CommuteDuration1")
+        newPropertiesView.LiveFilteringProperties.Add("CommuteDuration2")
 
     let textMatchesQuery (query:string) (text:string) = 
         query.Split([|'&'|], StringSplitOptions.RemoveEmptyEntries)
@@ -177,6 +190,14 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel) as self =
         property.GetSearchableContent()
         |> List.exists (textMatchesQuery query)
 
+    let acceptableCommuteDuration (propertyViewModel:PropertyViewModel) =
+        match (self.WorkLocationLatLong1, propertyViewModel.CommuteDuration1), 
+              (self.WorkLocationLatLong2, propertyViewModel.CommuteDuration2) with 
+        | (Some _, Some (_, duration1)), (Some _, Some (_, duration2)) -> duration1 <= self.MaxCommuteDuration || duration2 <= self.MaxCommuteDuration
+        | (Some _, Some (_, duration1)), _                             -> duration1 <= self.MaxCommuteDuration
+        | _                            , (Some _, Some (_, duration2)) ->                                         duration2 <= self.MaxCommuteDuration
+        | _ -> true
+
     let setFilter() =
         newPropertiesView.Filter <- fun property -> 
             let propertyViewModel = property :?> PropertyViewModel
@@ -187,41 +208,79 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel) as self =
                 && property.Price <= self.MaxPrice
                 && propertyViewModel.NumBedrooms >= self.MinBeds
                 && propertyViewModel.NumBedrooms <= self.MaxBeds
-                && match propertyViewModel.CommuteDuration with
-                   | None -> true
-                   | Some (_, duration) -> duration <= self.MaxCommuteDuration
+                && acceptableCommuteDuration propertyViewModel
                 && propertyMatchesQuery self.Search property
                 && (self.NegativeSearch = "" || not (propertyMatchesQuery self.NegativeSearch property))
             showListing
 
-    let calcCommuteDistance workLocationLatLong (propertyViewModel:PropertyViewModel) = async {
-        let! duration = GoogleMapsQuery.GetCommuteDuration propertyViewModel.Property.LatLong workLocationLatLong
-        propertyViewModel.CommuteDuration <- Some (workLocationLatLong, duration)
+    let calcCommuteDuration1 latLong (propertyViewModel:PropertyViewModel) = async {
+        let! duration = GoogleMapsQuery.GetCommuteDuration propertyViewModel.Property.LatLong latLong
+        propertyViewModel.CommuteDuration1 <- Some (latLong, duration)
     }
 
-    let updateWorkLocationLatLong() =
-        async {
-            let! newWorkLocationLatLong = LatLong.fromAddress self.WorkLocation
-            if Some newWorkLocationLatLong <> self.WorkLocationLatLong then
-                self.WorkLocationLatLong <- Some newWorkLocationLatLong
-                for property in propertiesViewModel.NewProperties do
-                    match property.CommuteDuration with
-                    | Some (workLocationLatLong, _) when workLocationLatLong = newWorkLocationLatLong -> ()
-                    | _ ->
-                        property.CommuteDuration <- None
-                        calcCommuteDistance newWorkLocationLatLong property |> Async.Catch |> Async.Ignore |> Async.Start
-        } |> Async.Catch |> Async.Ignore |> Async.Start
+    let calcCommuteDuration2 latLong (propertyViewModel:PropertyViewModel) = async {
+        let! duration = GoogleMapsQuery.GetCommuteDuration propertyViewModel.Property.LatLong latLong
+        propertyViewModel.CommuteDuration2 <- Some (latLong, duration)
+    }
 
     let context = SynchronizationContext.Current
+
+    let updateWorkLocationLatLong1() =
+        async {
+            if String.IsNullOrWhiteSpace self.WorkLocation1 then
+                self.WorkLocationLatLong1 <- None
+                do! Async.SwitchToContext context
+                newPropertiesView.Refresh()
+                do! Async.SwitchToThreadPool()
+            else
+                try
+                    let! newLatLong = LatLong.fromAddress self.WorkLocation1
+                    if Some newLatLong <> self.WorkLocationLatLong1 then
+                        self.WorkLocationLatLong1 <- Some newLatLong
+                        for property in propertiesViewModel.NewProperties do
+                            match property.CommuteDuration1 with
+                            | Some (latLong, _) when latLong = newLatLong -> ()
+                            | _ ->
+                                property.CommuteDuration1 <- None
+                                calcCommuteDuration1 newLatLong property |> Async.Catch |> Async.Ignore |> Async.Start
+                with _ ->
+                    self.WorkLocationLatLong1 <- None
+        } |> Async.Catch |> Async.Ignore |> Async.Start
+
+    let updateWorkLocationLatLong2() =
+        async {
+            if String.IsNullOrWhiteSpace self.WorkLocation2 then
+                self.WorkLocationLatLong2 <- None
+                do! Async.SwitchToContext context
+                newPropertiesView.Refresh()
+                do! Async.SwitchToThreadPool()
+            else
+                try
+                    let! newLatLong = LatLong.fromAddress self.WorkLocation2
+                    if Some newLatLong <> self.WorkLocationLatLong2 then
+                        self.WorkLocationLatLong2 <- Some newLatLong
+                        for property in propertiesViewModel.NewProperties do
+                            match property.CommuteDuration2 with
+                            | Some (latLong, _) when latLong = newLatLong -> ()
+                            | _ ->
+                                property.CommuteDuration2 <- None
+                                calcCommuteDuration2 newLatLong property |> Async.Catch |> Async.Ignore |> Async.Start
+                with _ ->
+                    self.WorkLocationLatLong2 <- None
+        } |> Async.Catch |> Async.Ignore |> Async.Start
 
     let addProperty property = async {
         do! Async.SwitchToContext context
         let propertyViewModel = propertiesViewModel.Add property
         do! Async.SwitchToThreadPool()
-        match self.WorkLocationLatLong with
+        match self.WorkLocationLatLong1 with
         | None -> ()
-        | Some workLocationLatLong -> 
-            calcCommuteDistance workLocationLatLong propertyViewModel |> Async.Catch |> Async.Ignore |> Async.Start
+        | Some latLong -> 
+            calcCommuteDuration1 latLong propertyViewModel |> Async.Catch |> Async.Ignore |> Async.Start
+        match self.WorkLocationLatLong2 with
+        | None -> ()
+        | Some latLong -> 
+            calcCommuteDuration2 latLong propertyViewModel |> Async.Catch |> Async.Ignore |> Async.Start
     }
 
     let crawler = Crawler(propertiesViewModel.SeenPropertyUrls, addProperty, [ Zoopla.T(); RightMove.T() ])
@@ -251,6 +310,9 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel) as self =
                 onStarted cts
                 Async.Start(computation, cts.Token)
 
+    let saveStateCommand =
+        self.Factory.CommandSync <| fun () -> propertiesViewModel.SaveState()
+
     let isRunning = self.Factory.Backing(<@ self.IsRunning @>, false)
     let minPrice = self.Factory.Backing(<@ self.MinPrice @>, 1000M)
     let maxPrice = self.Factory.Backing(<@ self.MaxPrice @>, 1500M)
@@ -259,13 +321,16 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel) as self =
     let minPhotos = self.Factory.Backing(<@ self.MinPhotos @>, 3)
     let search = self.Factory.Backing(<@ self.Search @>, "wooden floor")
     let negativeSearch = self.Factory.Backing(<@ self.NegativeSearch @>, "stratford | woolwich | croydon | peckham")
-    let workLocation = self.Factory.Backing(<@ self.WorkLocation @>, "London Victoria")
-    let workLocationLatLong = self.Factory.Backing(<@ self.WorkLocationLatLong @>, None)
+    let workLocation1 = self.Factory.Backing(<@ self.WorkLocation1 @>, "London Victoria")
+    let workLocation2 = self.Factory.Backing(<@ self.WorkLocation2 @>, "London Bridge Station")
+    let workLocationLatLong1 = self.Factory.Backing(<@ self.WorkLocationLatLong1 @>, None)
+    let workLocationLatLong2 = self.Factory.Backing(<@ self.WorkLocationLatLong2 @>, None)
     let maxCommuteDuration = self.Factory.Backing(<@ self.MaxCommuteDuration @>, 30)
 
     do 
         setFilter()
-        updateWorkLocationLatLong()
+        updateWorkLocationLatLong1()
+        updateWorkLocationLatLong2()
 
     member x.NewPropertiesView = newPropertiesView
     member x.Properties = propertiesViewModel
@@ -278,11 +343,14 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel) as self =
     member x.MinPhotos with get() = minPhotos.Value and set value = minPhotos.Value <- value; newPropertiesView.Refresh()
     member x.Search with get() = search.Value and set value = search.Value <- value; newPropertiesView.Refresh()
     member x.NegativeSearch with get() = negativeSearch.Value and set value = negativeSearch.Value <- value; newPropertiesView.Refresh()
-    member x.WorkLocation with get() = workLocation.Value and set value = workLocation.Value <- value; updateWorkLocationLatLong()
-    member x.WorkLocationLatLong with get() = workLocationLatLong.Value and set value = workLocationLatLong.Value <- value
+    member x.WorkLocation1 with get() = workLocation1.Value and set value = workLocation1.Value <- value; updateWorkLocationLatLong1()
+    member x.WorkLocation2 with get() = workLocation2.Value and set value = workLocation2.Value <- value; updateWorkLocationLatLong2()
+    member x.WorkLocationLatLong1 with get() = workLocationLatLong1.Value and set value = workLocationLatLong1.Value <- value
+    member x.WorkLocationLatLong2 with get() = workLocationLatLong2.Value and set value = workLocationLatLong2.Value <- value
     member x.MaxCommuteDuration with get() = maxCommuteDuration.Value and set value = maxCommuteDuration.Value <- value; newPropertiesView.Refresh()
 
     member x.StartStopCommand = startStopCommand
+    member x.SaveStateCommand = saveStateCommand
 
     new() =
         let propertiesViewModel = PropertiesViewModel()
@@ -301,7 +369,8 @@ type MockMainWindowViewModel() =
             |> HtmlDocument.Parse
         let mockProperty = (Zoopla.T() :> IPropertySite).ParsePropertyPage doc Property.Mock
         let propertyViewModel = propertiesViewModel.Add mockProperty
-        propertyViewModel.CommuteDuration <- Some (LatLong.Default, 25)
+        propertyViewModel.CommuteDuration1 <- Some (LatLong.Default, 25)
+        propertyViewModel.CommuteDuration2 <- Some (LatLong.Default, 30)
         propertiesViewModel
 
 type ListConverter() = 
@@ -329,6 +398,7 @@ type HyperlinkConverter() =
 type HyperlinkConverterWithParameter() =
     inherit ConverterWithParameterMarkupExtension<string, string, TextBlock>()
     override x.Convert url text =
+        if url = null then null else
         let hyperLink = Hyperlink(Run(text), NavigateUri = Uri url)
         hyperLink.RequestNavigate.Add <| fun _ ->
             Process.Start url |> ignore

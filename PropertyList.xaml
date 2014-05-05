@@ -64,7 +64,13 @@
                            IsHitTestVisible="False" 
                            FontWeight="Bold"
                            Margin="5,25"
-                           Text="{Binding CommuteDuration.Value.Item2, StringFormat={}{0} mins, FallbackValue=Calculating commute duration...}" />                   
+                           Text="{Binding CommuteDuration1.Value.Item2, StringFormat={}{0} mins, FallbackValue=Calculating commute duration...}" />
+                <TextBlock VerticalAlignment="Top" 
+                           HorizontalAlignment="Left" 
+                           IsHitTestVisible="False" 
+                           FontWeight="Bold"
+                           Margin="5,45"
+                           Text="{Binding CommuteDuration2.Value.Item2, StringFormat={}{0} mins, FallbackValue=Calculating commute duration...}" />
             </Grid>
         </DataTemplate>
 
@@ -104,7 +110,8 @@
             <StackPanel>
                 <ContentPresenter Content="{Binding Property.Url, Converter={local:HyperlinkConverterWithParameter}, ConverterParameter=Property}" Margin="5,2" />
                 <ContentPresenter Content="{Binding MapUrl, Converter={local:HyperlinkConverterWithParameter}, ConverterParameter=Map}" Margin="5,2" />
-                <ContentPresenter Content="{Binding DirectionsUrl, Converter={local:HyperlinkConverterWithParameter}, ConverterParameter=Directions}" Margin="5,2" />
+                <ContentPresenter Content="{Binding DirectionsUrl1.Value, Converter={local:HyperlinkConverterWithParameter}, ConverterParameter=Directions 1}" Margin="5,2" />
+                <ContentPresenter Content="{Binding DirectionsUrl2.Value, Converter={local:HyperlinkConverterWithParameter}, ConverterParameter=Directions 2}" Margin="5,2" />
                 <ContentPresenter Margin="5" Content="{Binding Property}" ContentTemplate="{StaticResource Vertical}" />
                 <ItemsControl ItemsSource="{Binding Property.Links}">
                     <ItemsControl.ItemTemplate>

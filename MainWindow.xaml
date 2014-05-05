@@ -44,7 +44,8 @@
                         <TextBlock Margin="5,0,0,0" Text="{Binding NewPropertiesView.Count}" />
                         <TextBlock Margin="0" Text="/" />
                         <TextBlock Margin="0,0,5,0" Text="{Binding Properties.TotalCount}" />
-                        <TextBlock Text="Bedrooms:" />
+                        <Button Width="35" Command="{Binding SaveStateCommand}" Content="Save" Margin="5,0" />
+                        <TextBlock Text="Bedrooms" />
                         <TextBox Width="20" Text="{Binding MinBeds}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
                         <TextBlock Text="to" />
                         <TextBox Width="20" Text="{Binding MaxBeds}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
@@ -55,11 +56,13 @@
                         <TextBlock Text="Min. Photos"/>
                         <TextBox Width="20" Text="{Binding MinPhotos, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Text="Containing" />
-                        <TextBox Width="150" Text="{Binding Search, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBox Width="100" Text="{Binding Search, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Text="but not" />
                         <TextBox Width="230" Text="{Binding NegativeSearch, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Text="Commute to" />
-                        <TextBox Width="100" Text="{Binding WorkLocation, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBox Width="100" Text="{Binding WorkLocation1, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Text="or" />
+                        <TextBox Width="130" Text="{Binding WorkLocation2, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Text="less than" />
                         <TextBox Width="40" Text="{Binding MaxCommuteDuration, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Text="mins" />

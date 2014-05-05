@@ -20,7 +20,7 @@ type Status =
     | Shortlisted
     | Discarded
 
-type PropertyViewModel(property:Property, status, onStatusChanged) as self = 
+type PropertyViewModel(property:Property, status, onStatusChanged, getWorkLocationLatLong1, getWorkLocationLatLong2) as self = 
     inherit ViewModelBase()
 
     let status = ref status
@@ -88,13 +88,13 @@ type PropertyViewModel(property:Property, status, onStatusChanged) as self =
         (GoogleMapsQuery x.Property.LatLong).Url
 
     member x.DirectionsUrl1 = 
-        match x.CommuteDuration1 with
-        | Some (latLong, _) -> Some <| GoogleMapsDirectionsAt9amNextWorkDay(x.Property.LatLong, latLong).Url
+        match getWorkLocationLatLong1() with
+        | Some latLong -> Some <| GoogleMapsDirectionsAt9amNextWorkDay(x.Property.LatLong, latLong).Url
         | None -> None        
 
     member x.DirectionsUrl2 = 
-        match x.CommuteDuration2 with
-        | Some (latLong, _) -> Some <| GoogleMapsDirectionsAt9amNextWorkDay(x.Property.LatLong, latLong).Url
+        match getWorkLocationLatLong2() with
+        | Some latLong -> Some <| GoogleMapsDirectionsAt9amNextWorkDay(x.Property.LatLong, latLong).Url
         | None -> None        
 
     member x.SelectCommand = selectCommand
@@ -118,17 +118,17 @@ type PropertiesViewModel() as self =
         assert removed
         (getCollection newStatus).Add propertyViewModel
 
-    let add status property = 
-        let propertyViewModel = PropertyViewModel(property, status, onStatusChanged)
+    let add status property getWorkLocationLatLong1 getWorkLocationLatLong2 = 
+        let propertyViewModel = PropertyViewModel(property, status, onStatusChanged, getWorkLocationLatLong1, getWorkLocationLatLong2)
         (getCollection status).Add propertyViewModel
         self.TotalCount <- self.TotalCount + 1
         propertyViewModel
 
     let stateFilename = "properties.json"
 
-    let loadState() =
+    let loadState getWorkLocationLatLong1 getWorkLocationLatLong2 =
         let add status (property, commuteDuration1, commuteDuration2) =
-            let propertyViewModel = add status property
+            let propertyViewModel = add status property getWorkLocationLatLong1 getWorkLocationLatLong2
             propertyViewModel.CommuteDuration1 <- commuteDuration1
             propertyViewModel.CommuteDuration2 <- commuteDuration2
         if File.Exists stateFilename then
@@ -167,10 +167,10 @@ type PropertiesViewModel() as self =
     member x.Add property = 
         add Status.New property
 
-    member x.LoadState() = loadState()
+    member x.LoadState getWorkLocationLatLong1 getWorkLocationLatLong2 = loadState getWorkLocationLatLong1 getWorkLocationLatLong2
     member x.SaveState() = saveState()
 
-type MainWindowViewModel(propertiesViewModel:PropertiesViewModel) as self = 
+type MainWindowViewModel(propertiesViewModel:PropertiesViewModel, loadState:bool) as self = 
     inherit ViewModelBase()
 
     let newPropertiesView = CollectionViewSource.GetDefaultView(propertiesViewModel.NewProperties) :?> ListCollectionView
@@ -271,7 +271,7 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel) as self =
 
     let addProperty property = async {
         do! Async.SwitchToContext context
-        let propertyViewModel = propertiesViewModel.Add property
+        let propertyViewModel = propertiesViewModel.Add property (fun () -> self.WorkLocationLatLong1) (fun () -> self.WorkLocationLatLong2)
         do! Async.SwitchToThreadPool()
         match self.WorkLocationLatLong1 with
         | None -> ()
@@ -328,9 +328,11 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel) as self =
     let maxCommuteDuration = self.Factory.Backing(<@ self.MaxCommuteDuration @>, 30)
 
     do 
-        setFilter()
         updateWorkLocationLatLong1()
         updateWorkLocationLatLong2()
+        if loadState then
+            propertiesViewModel.LoadState (fun () -> self.WorkLocationLatLong1) (fun () -> self.WorkLocationLatLong2)
+        setFilter()
 
     member x.NewPropertiesView = newPropertiesView
     member x.Properties = propertiesViewModel
@@ -354,12 +356,11 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel) as self =
 
     new() =
         let propertiesViewModel = PropertiesViewModel()
-        propertiesViewModel.LoadState()
         Application.Current.Exit.Add <| fun _ -> propertiesViewModel.SaveState()
-        MainWindowViewModel(propertiesViewModel)
+        MainWindowViewModel(propertiesViewModel, true)
 
 type MockMainWindowViewModel() = 
-    inherit MainWindowViewModel(MockMainWindowViewModel.GetMockData())
+    inherit MainWindowViewModel(MockMainWindowViewModel.GetMockData(), false)
 
     static member private GetMockData() =
         let propertiesViewModel = PropertiesViewModel()
@@ -368,7 +369,7 @@ type MockMainWindowViewModel() =
             |> File.ReadAllText
             |> HtmlDocument.Parse
         let mockProperty = (Zoopla.T() :> IPropertySite).ParsePropertyPage doc Property.Mock
-        let propertyViewModel = propertiesViewModel.Add mockProperty
+        let propertyViewModel = propertiesViewModel.Add mockProperty (fun () -> Some LatLong.Default) (fun () -> Some LatLong.Default)
         propertyViewModel.CommuteDuration1 <- Some (LatLong.Default, 25)
         propertyViewModel.CommuteDuration2 <- Some (LatLong.Default, 30)
         propertiesViewModel

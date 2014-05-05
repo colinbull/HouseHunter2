@@ -228,15 +228,16 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel, loadState:bool
     let updateWorkLocationLatLong1() =
         async {
             if String.IsNullOrWhiteSpace self.WorkLocation1 then
-                self.WorkLocationLatLong1 <- None
                 do! Async.SwitchToContext context
-                newPropertiesView.Refresh()
+                self.WorkLocationLatLong1 <- None
                 do! Async.SwitchToThreadPool()
             else
                 try
                     let! newLatLong = LatLong.fromAddress self.WorkLocation1
                     if Some newLatLong <> self.WorkLocationLatLong1 then
+                        do! Async.SwitchToContext context
                         self.WorkLocationLatLong1 <- Some newLatLong
+                        do! Async.SwitchToThreadPool()
                         for property in propertiesViewModel.NewProperties do
                             match property.CommuteDuration1 with
                             | Some (latLong, _) when latLong = newLatLong -> ()
@@ -250,15 +251,16 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel, loadState:bool
     let updateWorkLocationLatLong2() =
         async {
             if String.IsNullOrWhiteSpace self.WorkLocation2 then
-                self.WorkLocationLatLong2 <- None
                 do! Async.SwitchToContext context
-                newPropertiesView.Refresh()
+                self.WorkLocationLatLong2 <- None
                 do! Async.SwitchToThreadPool()
             else
                 try
                     let! newLatLong = LatLong.fromAddress self.WorkLocation2
                     if Some newLatLong <> self.WorkLocationLatLong2 then
+                        do! Async.SwitchToContext context
                         self.WorkLocationLatLong2 <- Some newLatLong
+                        do! Async.SwitchToThreadPool()
                         for property in propertiesViewModel.NewProperties do
                             match property.CommuteDuration2 with
                             | Some (latLong, _) when latLong = newLatLong -> ()
@@ -328,10 +330,10 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel, loadState:bool
     let maxCommuteDuration = self.Factory.Backing(<@ self.MaxCommuteDuration @>, 30)
 
     do 
-        updateWorkLocationLatLong1()
-        updateWorkLocationLatLong2()
         if loadState then
             propertiesViewModel.LoadState (fun () -> self.WorkLocationLatLong1) (fun () -> self.WorkLocationLatLong2)
+        updateWorkLocationLatLong1()
+        updateWorkLocationLatLong2()
         setFilter()
 
     member x.NewPropertiesView = newPropertiesView
@@ -347,8 +349,8 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel, loadState:bool
     member x.NegativeSearch with get() = negativeSearch.Value and set value = negativeSearch.Value <- value; newPropertiesView.Refresh()
     member x.WorkLocation1 with get() = workLocation1.Value and set value = workLocation1.Value <- value; updateWorkLocationLatLong1()
     member x.WorkLocation2 with get() = workLocation2.Value and set value = workLocation2.Value <- value; updateWorkLocationLatLong2()
-    member x.WorkLocationLatLong1 with get() = workLocationLatLong1.Value and set value = workLocationLatLong1.Value <- value
-    member x.WorkLocationLatLong2 with get() = workLocationLatLong2.Value and set value = workLocationLatLong2.Value <- value
+    member x.WorkLocationLatLong1 with get() = workLocationLatLong1.Value and set value = workLocationLatLong1.Value <- value; newPropertiesView.Refresh()
+    member x.WorkLocationLatLong2 with get() = workLocationLatLong2.Value and set value = workLocationLatLong2.Value <- value; newPropertiesView.Refresh()
     member x.MaxCommuteDuration with get() = maxCommuteDuration.Value and set value = maxCommuteDuration.Value <- value; newPropertiesView.Refresh()
 
     member x.StartStopCommand = startStopCommand

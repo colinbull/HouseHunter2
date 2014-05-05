@@ -57,8 +57,14 @@
                            HorizontalAlignment="Left" 
                            IsHitTestVisible="False" 
                            FontWeight="Bold"
-                           Margin="5"
-                           Text="{Binding Property.Price, StringFormat={}{0:N0}£}" />
+                           Margin="5">
+                    <TextBlock.Text>
+                        <MultiBinding StringFormat="{}{0:N0}£ - {1} beds">
+                            <Binding Path="Property.Price" />
+                            <Binding Path="NumBedrooms" />
+                        </MultiBinding>
+                    </TextBlock.Text>
+                </TextBlock>
                 <TextBlock VerticalAlignment="Top" 
                            HorizontalAlignment="Left" 
                            IsHitTestVisible="False" 
@@ -104,7 +110,7 @@
             </ListBox.ItemTemplate>
         </ListBox>
 
-        <GridSplitter ResizeDirection="Columns" Grid.Column="1" ResizeBehavior="PreviousAndNext" Width="1" Background="Gray" />
+        <GridSplitter ResizeDirection="Columns" Grid.Column="1" ResizeBehavior="PreviousAndNext" Width="3" Background="Gray" />
 
         <ScrollViewer Grid.Column="2" DataContext="{Binding SelectedItem, ElementName=list}" d:DataContext="{Binding Properties.NewProperties[0], Source={StaticResource MockData}}">
             <StackPanel>

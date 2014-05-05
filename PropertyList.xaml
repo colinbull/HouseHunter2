@@ -100,8 +100,10 @@
 
         <GridSplitter ResizeDirection="Columns" Grid.Column="1" ResizeBehavior="PreviousAndNext" Width="1" Background="Gray" />
 
-        <ScrollViewer Grid.Column="2" DataContext="{Binding SelectedItem, ElementName=list}" d:DataContext="{Binding NewPropertiesView[0], Source={StaticResource MockData}}">
+        <ScrollViewer Grid.Column="2" DataContext="{Binding SelectedItem, ElementName=list}" d:DataContext="{Binding Properties.NewProperties[0], Source={StaticResource MockData}}">
             <StackPanel>
+                <ContentPresenter Content="{Binding Property.Url, Converter={local:HyperlinkConverterWithParameter}, ConverterParameter=Property}" Margin="5,2" />
+                <ContentPresenter Content="{Binding MapUrl, Converter={local:HyperlinkConverterWithParameter}, ConverterParameter=Map}" Margin="5,2" />
                 <ContentPresenter Margin="5" Content="{Binding Property}" ContentTemplate="{StaticResource Vertical}" />
                 <ItemsControl ItemsSource="{Binding Property.Links}">
                     <ItemsControl.ItemTemplate>

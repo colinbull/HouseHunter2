@@ -153,7 +153,7 @@ let parsePropertyPage (doc:HtmlDocument) (property:Property) =
         |> Option.mapList (elements "li" >> Seq.map innerText >> Seq.toList)
 
     let getLink a =
-        innerText a |> String.trim,
+        innerText a |> String.trim |> String.remove "__",
         baseUrl + a?href
 
     let links = 

@@ -41,8 +41,8 @@ type PropertyViewModel(property:Property, status, onStatusChanged) as self =
     let openInBrowserCommand = 
         self.Factory.CommandSyncChecked(
             (fun () -> 
-                Process.Start property.Url |> ignore
-                Process.Start (GoogleMapsQuery property.LatLong).Url |> ignore),
+                property.Url |> Process.Start |> ignore
+                (self.MapUrl : string) |> Process.Start |> ignore),
             (fun () -> !status = Status.Shortlisted)) 
 
     let selectCommand =
@@ -61,6 +61,9 @@ type PropertyViewModel(property:Property, status, onStatusChanged) as self =
     member x.Photos =
         x.Property.Photos @ [ "https://maps.googleapis.com/maps/api/staticmap?zoom=15&size=500x250&sensor=false&markers=" + x.Property.LatLong.ToString()
                               "https://maps.googleapis.com/maps/api/staticmap?zoom=12&size=500x250&sensor=false&markers=" + x.Property.LatLong.ToString() ]
+
+    member x.MapUrl =
+        (GoogleMapsQuery x.Property.LatLong).Url
 
     member x.SelectCommand = selectCommand
     member x.DiscardCommand = discardCommand
@@ -295,6 +298,14 @@ type HyperlinkConverter() =
     inherit ConverterMarkupExtension<string*string, TextBlock>()
     override x.Convert arg =
         let text, url = arg
+        let hyperLink = Hyperlink(Run(text), NavigateUri = Uri url)
+        hyperLink.RequestNavigate.Add <| fun _ ->
+            Process.Start url |> ignore
+        TextBlock(hyperLink)
+
+type HyperlinkConverterWithParameter() =
+    inherit ConverterWithParameterMarkupExtension<string, string, TextBlock>()
+    override x.Convert url text =
         let hyperLink = Hyperlink(Run(text), NavigateUri = Uri url)
         hyperLink.RequestNavigate.Add <| fun _ ->
             Process.Start url |> ignore

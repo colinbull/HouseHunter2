@@ -41,7 +41,7 @@ type Property =
         |> List.filter ((<>) "")
 
     static member Mock = 
-        { Url = ""
+        { Url = "http://example.org"
           Name = ""
           Description = ""
           Address = ""

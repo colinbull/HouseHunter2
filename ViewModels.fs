@@ -315,8 +315,8 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel, loadState:bool
 
     let isRunning = self.Factory.Backing(<@ self.IsRunning @>, false)
     let minPrice = self.Factory.Backing(<@ self.MinPrice @>, 1000M)
-    let maxPrice = self.Factory.Backing(<@ self.MaxPrice @>, 1500M)
-    let minBeds = self.Factory.Backing(<@ self.MinBeds @>, 2)
+    let maxPrice = self.Factory.Backing(<@ self.MaxPrice @>, 1600M)
+    let minBeds = self.Factory.Backing(<@ self.MinBeds @>, 1)
     let maxBeds = self.Factory.Backing(<@ self.MaxBeds @>, 3)
     let minPhotos = self.Factory.Backing(<@ self.MinPhotos @>, 3)
     let search = self.Factory.Backing(<@ self.Search @>, "wooden floor")

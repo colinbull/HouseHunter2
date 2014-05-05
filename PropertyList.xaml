@@ -15,9 +15,9 @@
         
         <DataTemplate x:Key="Vertical" DataType="local:Property">
             <StackPanel>
-                <TextBlock TextWrapping="Wrap">
-                    <TextBlock.Text>
-                        <MultiBinding StringFormat="{}{1:N0}£ - {2}{0}{3} ({4}){0}{0}{5}{0}{0}{6}{0}{0}Nearby:{0}{7}{0}{0}Agency Phone: {8}{0}{0}Posted {9}" FallbackValue="No Selection">
+                <TextBox TextWrapping="Wrap" IsReadOnly="True" BorderThickness="0" Margin="0">
+                    <TextBox.Text>
+                        <MultiBinding Mode="OneWay" StringFormat="{}{1:N0}£ - {2}{0}{3} ({4}){0}{0}{5}{0}{0}{6}{0}{0}Nearby:{0}{7}{0}{0}Agency Phone: {8}{0}{0}Posted {9}" FallbackValue="No Selection">
                             <Binding Source="{x:Static sys:Environment.NewLine}"/>
                             <Binding Path="Price" />
                             <Binding Path="Name" />
@@ -29,8 +29,8 @@
                             <Binding Path="Phone" />
                             <Binding Path="AddedOn" />
                         </MultiBinding>
-                    </TextBlock.Text>
-                </TextBlock>
+                    </TextBox.Text>
+                </TextBox>
             </StackPanel>
         </DataTemplate>
 

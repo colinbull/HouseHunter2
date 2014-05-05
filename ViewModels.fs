@@ -12,6 +12,7 @@ open System.Threading
 open HtmlAgilityPack
 open FsWpf
 open FSharp.ViewModule.Core.ViewModel
+open FSharp.RegexProvider
 open Newtonsoft.Json
 
 type Status =
@@ -54,7 +55,17 @@ type PropertyViewModel(property:Property, status, onStatusChanged) as self =
     
     let commuteDuration = self.Factory.Backing(<@ self.CommuteDuration @>, None)
 
+    static let bedroomMatcher = new Regex<"(?<Bedrooms>\d{1,3}) bedroom">()
+    let numBedrooms = 
+        lazy 
+            bedroomMatcher.Match(property.Name).Bedrooms.Value 
+            |> Int32.TryParse 
+            |> Option.fromTryParse 
+            |> Option.get 0
+
     member x.CommuteDuration with get() = commuteDuration.Value and set value = commuteDuration.Value <- value
+
+    member x.NumBedrooms = numBedrooms.Value
 
     member x.Property = property
 
@@ -161,14 +172,16 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel) as self =
             let propertyViewModel = property :?> PropertyViewModel
             let property = propertyViewModel.Property
             let showListing = 
-                property.Photos.Length >= self.MinPhotos &&
-                property.Price >= self.MinPrice &&
-                property.Price <= self.MaxPrice &&
-                propertyMatchesQuery self.Search property &&
-                (self.NegativeSearch = "" || not (propertyMatchesQuery self.NegativeSearch property)) &&
-                match propertyViewModel.CommuteDuration with
-                | None -> true
-                | Some (_, duration) -> duration <= self.MaxCommuteDuration
+                property.Photos.Length >= self.MinPhotos
+                && property.Price >= self.MinPrice
+                && property.Price <= self.MaxPrice
+                && propertyViewModel.NumBedrooms >= self.MinBeds
+                && propertyViewModel.NumBedrooms <= self.MaxBeds
+                && match propertyViewModel.CommuteDuration with
+                   | None -> true
+                   | Some (_, duration) -> duration <= self.MaxCommuteDuration
+                && propertyMatchesQuery self.Search property
+                && (self.NegativeSearch = "" || not (propertyMatchesQuery self.NegativeSearch property))
             showListing
 
     let calcCommuteDistance workLocationLatLong (propertyViewModel:PropertyViewModel) = async {

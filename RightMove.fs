@@ -132,9 +132,9 @@ let parsePropertyPage (doc:HtmlDocument) (property:Property) =
         |> Seq.reduce (+)
     
     let addedOn = 
-        (doc.DocumentNode.Descendants("strong")
-        |> Seq.find (hasText "First Listed on Rightmove:")).NextSibling
-        |> innerText
+        doc.DocumentNode.Descendants("strong")
+        |> Seq.tryFind (hasText "First Listed on Rightmove:")
+        |> Option.mapString (fun x -> x.NextSibling |> innerText)
 
     let phone = 
         doc.DocumentNode.Descendants("span")

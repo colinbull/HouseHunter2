@@ -45,11 +45,12 @@ type GoogleMapsQuery =
         let str = str.Substring(0, pos)
         let parts = str.Trim().Replace("(", null).Replace(")", null).Replace("min", null).Replace("hour", null).Replace("sec", null).Replace("s", null).Split([|' '|], StringSplitOptions.RemoveEmptyEntries)
         if parts.Length = 1 then
-            return Some (Int32.Parse parts.[0])
+            return Int32.Parse parts.[0]
         elif parts.Length = 2 then
             let hours = Int32.Parse parts.[0]
             let minutes = Int32.Parse parts.[1]
-            return Some (hours * 60 + minutes)
+            return hours * 60 + minutes
         else
-            return None
+            failwithf "Uneexpected result: %s" str
+            return Unchecked.defaultof<_>()
     }

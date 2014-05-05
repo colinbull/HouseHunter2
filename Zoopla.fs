@@ -172,12 +172,6 @@ let parsePropertyPage (doc:HtmlDocument) (property:Property) =
             else
                 featureLinks.Add (innerText feature, href)
 
-    let attachments =
-        doc.DocumentNode.Descendants("h3")
-        |> Seq.where (hasText "Property info")
-        |> Seq.collect (followingSibling "ul" >> descendants "a" >> Seq.where (hasAttr "data-ga-category" "Listing attachments") >> Seq.map (attr "href"))
-        |> Seq.toList
-    
     { property with
         Name = name
         Description = description

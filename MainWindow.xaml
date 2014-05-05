@@ -40,9 +40,9 @@
                                 </Style>
                             </Button.Style>
                         </Button>
-                        <TextBlock Margin="5,0,0,0" Text="{Binding NewProperties.Count}" />
+                        <TextBlock Margin="5,0,0,0" Text="{Binding NewPropertiesView.Count}" />
                         <TextBlock Margin="0" Text="/" />
-                        <TextBlock Margin="0,0,5,0" Text="{Binding TotalCount}" />
+                        <TextBlock Margin="0,0,5,0" Text="{Binding Properties.TotalCount}" />
                         <TextBlock Text="Bedrooms:" />
                         <TextBox Width="20" Text="{Binding MinBeds}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
                         <TextBlock Text="to" />
@@ -63,14 +63,14 @@
                         <TextBox Width="40" Text="{Binding MaxCommuteDuration, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Text="mins" />
                     </StackPanel>
-                    <local:PropertyList DataContext="{Binding NewProperties}" />
+                    <local:PropertyList DataContext="{Binding NewPropertiesView}" />
                 </DockPanel>
             </TabItem>
             <TabItem Header="Shortlist" Margin="-2">
-                <local:PropertyList DataContext="{Binding ShortlistedProperties}" />
+                <local:PropertyList DataContext="{Binding Properties.ShortlistedProperties}" />
             </TabItem>
             <TabItem Header="Discarded" Margin="-2">
-                <local:PropertyList DataContext="{Binding DiscardedProperties}" />
+                <local:PropertyList DataContext="{Binding Properties.DiscardedProperties}" />
             </TabItem>
         </TabControl>
         <TextBlock VerticalAlignment="Bottom" Margin="170,0,0,3">

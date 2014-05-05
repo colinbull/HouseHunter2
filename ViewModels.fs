@@ -52,15 +52,12 @@ type PropertyViewModel(property:Property, status, onStatusChanged) as self =
     
     let commuteDuration = self.Factory.Backing(<@ self.CommuteDuration @>, None)
 
-    member x.CommuteDuration with get() : int option = commuteDuration.Value and set value = commuteDuration.Value <- value
+    member x.CommuteDuration with get() : (LatLong * int) option = commuteDuration.Value and set value = commuteDuration.Value <- value
 
     member x.Property = property
 
     member x.SelectCommand = selectCommand
     member x.DiscardCommand = discardCommand
-
-    static member GetProperty(x:PropertyViewModel) = x.Property
-    static member GetUrl(x:PropertyViewModel) = x.Property.Url
 
 type PropertiesViewModel() as self =
     inherit ViewModelBase()
@@ -89,18 +86,23 @@ type PropertiesViewModel() as self =
     let stateFilename = "properties.json"
 
     let loadState() =
+        let add status (property, commuteDuration) =
+            let propertyViewModel = add status property
+            propertyViewModel.CommuteDuration <- commuteDuration
         if File.Exists stateFilename then
             let newProps, shortlistedProps, discardedProps =
                 JsonConvert.DeserializeObject<_>(File.ReadAllText stateFilename)
-            List.iter (add Status.New >> ignore) newProps
-            List.iter (add Status.Shortlisted >> ignore) shortlistedProps
-            List.iter (add Status.Discarded >> ignore) discardedProps
+            List.iter (add Status.New) newProps
+            List.iter (add Status.Shortlisted) shortlistedProps
+            List.iter (add Status.Discarded) discardedProps
 
     let saveState() = 
+        let getState (propertyViewModel:PropertyViewModel) = 
+            propertyViewModel.Property, propertyViewModel.CommuteDuration
         let state =
-            Seq.map PropertyViewModel.GetProperty newProperties,
-            Seq.map PropertyViewModel.GetProperty shortlistedProperties,
-            Seq.map PropertyViewModel.GetProperty discardedProperties
+            Seq.map getState newProperties,
+            Seq.map getState shortlistedProperties,
+            Seq.map getState discardedProperties
         File.WriteAllText(stateFilename, JsonConvert.SerializeObject state)
 
     let totalCount = self.Factory.Backing(<@ self.TotalCount @>, 0)
@@ -112,10 +114,12 @@ type PropertiesViewModel() as self =
     member x.TotalCount with get() = totalCount.Value and set value = totalCount.Value <- value
 
     member x.SeenPropertyUrls =
+        let getUrl (propertyViewModel:PropertyViewModel) =
+            propertyViewModel.Property.Url
         Seq.concat
-            [ Seq.map PropertyViewModel.GetUrl newProperties
-              Seq.map PropertyViewModel.GetUrl shortlistedProperties
-              Seq.map PropertyViewModel.GetUrl discardedProperties ]
+            [ Seq.map getUrl newProperties
+              Seq.map getUrl shortlistedProperties
+              Seq.map getUrl discardedProperties ]
         |> Seq.toList
 
     member x.Add property = 
@@ -155,22 +159,25 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel) as self =
                 (self.NegativeSearch = "" || not (propertyMatchesQuery self.NegativeSearch property)) &&
                 match propertyViewModel.CommuteDuration with
                 | None -> true
-                | Some duration -> duration <= self.MaxCommuteDuration
+                | Some (_, duration) -> duration <= self.MaxCommuteDuration
             showListing
 
     let calcCommuteDistance workLocationLatLong (propertyViewModel:PropertyViewModel) = async {
         let! duration = GoogleMapsQuery.GetCommuteDuration propertyViewModel.Property.LatLong workLocationLatLong
-        propertyViewModel.CommuteDuration <- duration
+        propertyViewModel.CommuteDuration <- Some (workLocationLatLong, duration)
     }
 
     let updateWorkLocationLatLong() =
         async {
-            let! latLong = LatLong.fromAddress self.WorkLocation
-            if Some latLong <> self.WorkLocationLatLong then
-                self.WorkLocationLatLong <- Some latLong
+            let! newWorkLocationLatLong = LatLong.fromAddress self.WorkLocation
+            if Some newWorkLocationLatLong <> self.WorkLocationLatLong then
+                self.WorkLocationLatLong <- Some newWorkLocationLatLong
                 for property in propertiesViewModel.NewProperties do
-                    property.CommuteDuration <- None
-                    calcCommuteDistance latLong property |> Async.Start
+                    match property.CommuteDuration with
+                    | Some (workLocationLatLong, _) when workLocationLatLong = newWorkLocationLatLong -> ()
+                    | _ ->
+                        property.CommuteDuration <- None
+                        calcCommuteDistance newWorkLocationLatLong property |> Async.Start
         } |> Async.Start
 
     let context = SynchronizationContext.Current
@@ -228,10 +235,8 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel) as self =
         setFilter()
         updateWorkLocationLatLong()
 
-    member x.NewProperties = newPropertiesView
-    member x.ShortlistedProperties = propertiesViewModel.ShortlistedProperties
-    member x.DiscardedProperties = propertiesViewModel.DiscardedProperties
-    member x.TotalCount = propertiesViewModel.TotalCount
+    member x.NewPropertiesView = newPropertiesView
+    member x.Properties = propertiesViewModel
     
     member x.IsRunning with get() = isRunning.Value and set value = isRunning.Value <- value
     member x.MinPrice with get() = minPrice.Value and set value = minPrice.Value <- value; newPropertiesView.Refresh()
@@ -264,7 +269,7 @@ type MockMainWindowViewModel() =
             |> HtmlDocument.Parse
         let mockProperty = (Zoopla.T() :> IPropertySite).ParsePropertyPage doc Property.Mock
         let propertyViewModel = propertiesViewModel.Add mockProperty
-        propertyViewModel.CommuteDuration <- Some 25
+        propertyViewModel.CommuteDuration <- Some (LatLong.parse "-1" "-1", 25)
         propertiesViewModel
 
 type ListConverter() = 

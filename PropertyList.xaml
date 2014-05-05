@@ -64,7 +64,7 @@
                            IsHitTestVisible="False" 
                            FontWeight="Bold"
                            Margin="5,25"
-                           Text="{Binding CommuteDuration.Value, StringFormat={}{0} mins, FallbackValue=Calculating commute duration...}" />                   
+                           Text="{Binding CommuteDuration.Value.Item2, StringFormat={}{0} mins, FallbackValue=Calculating commute duration...}" />                   
             </Grid>
         </DataTemplate>
 
@@ -79,7 +79,7 @@
 
         <ListBox x:Name="list"
                  ItemsSource="{Binding}"
-                 d:DataContext="{Binding NewProperties}"
+                 d:DataContext="{Binding NewPropertiesView}"
                  BorderThickness="0"
                  ScrollViewer.CanContentScroll="True"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -100,7 +100,7 @@
 
         <GridSplitter ResizeDirection="Columns" Grid.Column="1" ResizeBehavior="PreviousAndNext" Width="1" Background="Gray" />
 
-        <ScrollViewer Grid.Column="2" DataContext="{Binding SelectedItem.Property, ElementName=list}" d:DataContext="{Binding NewProperties[0].Property, Source={StaticResource MockData}}">
+        <ScrollViewer Grid.Column="2" DataContext="{Binding SelectedItem.Property, ElementName=list}" d:DataContext="{Binding NewPropertiesView[0].Property, Source={StaticResource MockData}}">
             <StackPanel>
                 <ContentPresenter Margin="5" Content="{Binding}" ContentTemplate="{StaticResource Vertical}" />
                 <ItemsControl ItemsSource="{Binding Links}">

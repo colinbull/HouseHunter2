@@ -19,14 +19,14 @@ module private DateHelpers =
         nextWorkDay
 
 type GoogleMapsQuery =     
-    | GoogleMapsQuery of string
+    | GoogleMapsQuery of center:LatLong
     | GoogleMapsDirections of source:LatLong * destination:LatLong * date:DateTime
     | GoogleMapsDirectionsAt9amNextWorkDay of srouce:LatLong * destination:LatLong
     
     member x.Url =
         let baseUrl = "http://maps.google.co.uk/"
         match x with
-        | GoogleMapsQuery query -> baseUrl + "?q=" + query
+        | GoogleMapsQuery center -> sprintf "%s?q=%O" baseUrl center
         | GoogleMapsDirectionsAt9amNextWorkDay(source, destination) -> GoogleMapsDirections(source, destination, DateHelpers.nextWorkDayAt9am).Url
         | GoogleMapsDirections(source, destination, date) -> 
             sprintf "%s?dirflg=r&ttype=arr&time=%s&date=%s&saddr=%O&daddr=%O" 

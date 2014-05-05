@@ -40,7 +40,9 @@ type PropertyViewModel(property:Property, status, onStatusChanged) as self =
 
     let openInBrowserCommand = 
         self.Factory.CommandSyncChecked(
-            (fun () -> Process.Start property.Url |> ignore),
+            (fun () -> 
+                Process.Start property.Url |> ignore
+                Process.Start (GoogleMapsQuery property.LatLong).Url |> ignore),
             (fun () -> !status = Status.Shortlisted)) 
 
     let selectCommand =

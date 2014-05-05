@@ -40,7 +40,7 @@
                                            HorizontalScrollBarVisibility="Auto"
                                            CanContentScroll="False"
                                            Focusable="False">
-                    <ItemsControl ItemsSource="{Binding Photos}" Margin="0">
+                    <ItemsControl ItemsSource="{Binding Property.Photos}" Margin="0">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <StackPanel Orientation="Horizontal" />
@@ -57,14 +57,14 @@
                            HorizontalAlignment="Left" 
                            IsHitTestVisible="False" 
                            FontWeight="Bold"
-                           Margin="5">
-                    <TextBlock.Text>
-                        <MultiBinding StringFormat="{}{1:N0}£{0}">
-                            <Binding Source="{x:Static sys:Environment.NewLine}"/>
-                            <Binding Path="Price" />
-                        </MultiBinding>
-                    </TextBlock.Text>
-                </TextBlock>
+                           Margin="5"
+                           Text="{Binding Property.Price, StringFormat={}{0:N0}£}" />
+                <TextBlock VerticalAlignment="Top" 
+                           HorizontalAlignment="Left" 
+                           IsHitTestVisible="False" 
+                           FontWeight="Bold"
+                           Margin="5,25"
+                           Text="{Binding CommuteDuration.Value, StringFormat={}{0} mins, FallbackValue=Calculating commute duration...}" />                   
             </Grid>
         </DataTemplate>
 
@@ -88,7 +88,7 @@
                  HorizontalContentAlignment="Stretch">
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <ContentControl Content="{Binding Property}" ContentTemplate="{StaticResource Horizontal}" >
+                    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource Horizontal}" >
                         <ContentControl.InputBindings>
                             <MouseBinding Gesture="LeftDoubleClick" Command="{Binding SelectCommand}" />
                             <MouseBinding Gesture="RightClick" Command="{Binding DiscardCommand}" />

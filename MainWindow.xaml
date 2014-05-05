@@ -14,51 +14,56 @@
     <Window.DataContext>
         <local:MainWindowViewModel />
     </Window.DataContext>
-    
+
     <Grid>
         <TabControl x:Name="tabControl" TabStripPlacement="Bottom" Padding="0">
             <TabItem Header="New" Margin="-2">
-            <DockPanel>
-                <DockPanel.Resources>
-                    <Style TargetType="TextBlock">
-                        <Setter Property="VerticalAlignment" Value="Center" />
-                    </Style>
-                    <Style TargetType="TextBox">
-                        <Setter Property="Margin" Value="5,0" />
-                    </Style>
-                </DockPanel.Resources>
-                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,5">
-                    <Button Width="35" Command="{Binding StartStopCommand}" Margin="5,0">
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                <Setter Property="Content" Value="Start" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsRunning}" Value="True">
-                                        <Setter Property="Content" Value="Stop" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    <TextBlock Margin="5,0" Text="{Binding CountStr}" />
-                    <TextBlock Text="Bedrooms:" />
-                    <TextBox Width="20" Text="{Binding MinBeds}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
-                    <TextBlock Text="to" />
-                    <TextBox Width="20" Text="{Binding MaxBeds}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
-                    <TextBlock Text="Price per month" />
-                    <TextBox Width="40" Text="{Binding MinPrice}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
-                    <TextBlock Text="to" />
-                    <TextBox Width="40" Text="{Binding MaxPrice}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
-                    <TextBlock Text="Min. Photos"/>
-                    <TextBox Width="20" Text="{Binding MinPhotos, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Text="Containing" />
-                    <TextBox Width="150" Text="{Binding Search, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Text="but not" />
-                    <TextBox Width="230" Text="{Binding NegativeSearch, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
-                </StackPanel>
-                <local:PropertyList DataContext="{Binding NewProperties}" />
-            </DockPanel>
-        </TabItem>
+                <DockPanel>
+                    <DockPanel.Resources>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="VerticalAlignment" Value="Center" />
+                        </Style>
+                        <Style TargetType="TextBox">
+                            <Setter Property="Margin" Value="5,0" />
+                        </Style>
+                    </DockPanel.Resources>
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,5">
+                        <Button Width="35" Command="{Binding StartStopCommand}" Margin="5,0">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                    <Setter Property="Content" Value="Start" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                            <Setter Property="Content" Value="Stop" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <TextBlock Margin="5,0" Text="{Binding CountStr}" />
+                        <TextBlock Text="Bedrooms:" />
+                        <TextBox Width="20" Text="{Binding MinBeds}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
+                        <TextBlock Text="to" />
+                        <TextBox Width="20" Text="{Binding MaxBeds}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
+                        <TextBlock Text="Price per month" />
+                        <TextBox Width="40" Text="{Binding MinPrice}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
+                        <TextBlock Text="to" />
+                        <TextBox Width="40" Text="{Binding MaxPrice}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
+                        <TextBlock Text="Min. Photos"/>
+                        <TextBox Width="20" Text="{Binding MinPhotos, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Text="Containing" />
+                        <TextBox Width="150" Text="{Binding Search, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Text="but not" />
+                        <TextBox Width="230" Text="{Binding NegativeSearch, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Text="Commute duration to" />
+                        <TextBox Width="100" Text="{Binding WorkLocation, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Text="less than" />
+                        <TextBox Width="40" Text="{Binding MaxCommuteDuration, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Text="mins" />
+                    </StackPanel>
+                    <local:PropertyList DataContext="{Binding NewProperties}" />
+                </DockPanel>
+            </TabItem>
             <TabItem Header="Shortlist" Margin="-2">
                 <local:PropertyList DataContext="{Binding ShortlistedProperties}" />
             </TabItem>

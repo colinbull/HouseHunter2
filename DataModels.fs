@@ -15,7 +15,7 @@ type LatLong =
         let! geocodeResponse = XmlProvider<"http://maps.googleapis.com/maps/api/geocode/xml?sensor=false&address=london">.AsyncLoad url
         let location = geocodeResponse.Results.[0].Geometry.Location
         return { Lat = double location.Lat
-                 Long = double location.Lat } }
+                 Long = double location.Lng } }
     override x.ToString() = 
         sprintf "%f,%f" x.Lat x.Long
 

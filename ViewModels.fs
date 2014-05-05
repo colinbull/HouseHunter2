@@ -183,8 +183,8 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel) as self =
                     | Some (workLocationLatLong, _) when workLocationLatLong = newWorkLocationLatLong -> ()
                     | _ ->
                         property.CommuteDuration <- None
-                        calcCommuteDistance newWorkLocationLatLong property |> Async.Start
-        } |> Async.Start
+                        calcCommuteDistance newWorkLocationLatLong property |> Async.Catch |> Async.Ignore |> Async.Start
+        } |> Async.Catch |> Async.Ignore |> Async.Start
 
     let context = SynchronizationContext.Current
 
@@ -195,7 +195,7 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel) as self =
         match self.WorkLocationLatLong with
         | None -> ()
         | Some workLocationLatLong -> 
-            calcCommuteDistance workLocationLatLong propertyViewModel |> Async.Start
+            calcCommuteDistance workLocationLatLong propertyViewModel |> Async.Catch |> Async.Ignore |> Async.Start
     }
 
     let crawler = Crawler(propertiesViewModel.SeenPropertyUrls, addProperty, [ Zoopla.T(); RightMove.T() ])

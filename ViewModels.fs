@@ -62,7 +62,8 @@ type PropertyViewModel(property:Property, status, onStatusChanged) as self =
     static member GetProperty(x:PropertyViewModel) = x.Property
     static member GetUrl(x:PropertyViewModel) = x.Property.Url
 
-type PropertiesViewModel() =
+type PropertiesViewModel() as self =
+    inherit ViewModelBase()
     
     let newProperties = ObservableCollection<_>()
     let shortlistedProperties = ObservableCollection<_>()
@@ -82,10 +83,10 @@ type PropertiesViewModel() =
     let add status property = 
         let propertyViewModel = PropertyViewModel(property, status, onStatusChanged)
         (getCollection status).Add propertyViewModel
+        self.TotalCount <- self.TotalCount + 1
         propertyViewModel
 
     let stateFilename = "properties.json"
-    let stateFilename2 = "properties.bin"
 
     let loadState() =
         if File.Exists stateFilename then
@@ -102,11 +103,13 @@ type PropertiesViewModel() =
             Seq.map PropertyViewModel.GetProperty discardedProperties
         File.WriteAllText(stateFilename, JsonConvert.SerializeObject state)
 
-    do loadState()
+    let totalCount = self.Factory.Backing(<@ self.TotalCount @>, 0)
 
     member x.NewProperties = newProperties
     member x.ShortlistedProperties = shortlistedProperties
     member x.DiscardedProperties = discardedProperties
+
+    member x.TotalCount with get() = totalCount.Value and set value = totalCount.Value <- value
 
     member x.SeenPropertyUrls =
         Seq.concat
@@ -115,17 +118,14 @@ type PropertiesViewModel() =
               Seq.map PropertyViewModel.GetUrl discardedProperties ]
         |> Seq.toList
 
-    member x.TotalCount = 
-        newProperties.Count + shortlistedProperties.Count + discardedProperties.Count
+    member x.Add property = 
+        add Status.New property
 
-    member x.Add property = add Status.New property
-
+    member x.LoadState() = loadState()
     member x.SaveState() = saveState()
 
-type MainWindowViewModel() as self = 
+type MainWindowViewModel(propertiesViewModel:PropertiesViewModel) as self = 
     inherit ViewModelBase()
-
-    let propertiesViewModel = PropertiesViewModel()
 
     let newPropertiesView = CollectionViewSource.GetDefaultView(propertiesViewModel.NewProperties) :?> ListCollectionView
     do 
@@ -143,9 +143,6 @@ type MainWindowViewModel() as self =
         property.GetSearchableContent()
         |> List.exists (textMatchesQuery query)
 
-    let updateCount() = 
-        self.CountStr <- sprintf "%d/%d" newPropertiesView.Count propertiesViewModel.TotalCount
-
     let setFilter() =
         newPropertiesView.Filter <- fun property -> 
             let propertyViewModel = property :?> PropertyViewModel
@@ -160,23 +157,27 @@ type MainWindowViewModel() as self =
                 | None -> true
                 | Some duration -> duration <= self.MaxCommuteDuration
             showListing
-        updateCount()
-
-    let refreshFilter() =
-        newPropertiesView.Refresh()
-        updateCount()
-
-    let context = SynchronizationContext.Current
 
     let calcCommuteDistance workLocationLatLong (propertyViewModel:PropertyViewModel) = async {
         let! duration = GoogleMapsQuery.GetCommuteDuration propertyViewModel.Property.LatLong workLocationLatLong
         propertyViewModel.CommuteDuration <- duration
     }
 
+    let updateWorkLocationLatLong() =
+        async {
+            let! latLong = LatLong.fromAddress self.WorkLocation
+            if Some latLong <> self.WorkLocationLatLong then
+                self.WorkLocationLatLong <- Some latLong
+                for property in propertiesViewModel.NewProperties do
+                    property.CommuteDuration <- None
+                    calcCommuteDistance latLong property |> Async.Start
+        } |> Async.Start
+
+    let context = SynchronizationContext.Current
+
     let addProperty property = async {
         do! Async.SwitchToContext context
         let propertyViewModel = propertiesViewModel.Add property
-        updateCount()
         do! Async.SwitchToThreadPool()
         match self.WorkLocationLatLong with
         | None -> ()
@@ -184,8 +185,7 @@ type MainWindowViewModel() as self =
             calcCommuteDistance workLocationLatLong propertyViewModel |> Async.Start
     }
 
-    let propertySites = [ Zoopla.T() :> IPropertySite ]
-    let crawler = Crawler(propertiesViewModel.SeenPropertyUrls, addProperty, propertySites)
+    let crawler = Crawler(propertiesViewModel.SeenPropertyUrls, addProperty, [ Zoopla.T() ])
 
     let currentCts : CancellationTokenSource option ref = ref None
 
@@ -212,17 +212,6 @@ type MainWindowViewModel() as self =
                 onStarted cts
                 Async.Start(computation, cts.Token)
 
-    let updateWorkLocationLatLong() =
-        async {
-            let! latLong = LatLong.fromAddress self.WorkLocation
-            if Some latLong <> self.WorkLocationLatLong then
-                self.WorkLocationLatLong <- Some latLong
-                for property in propertiesViewModel.NewProperties do
-                    property.CommuteDuration <- None
-                    calcCommuteDistance latLong property |> Async.Start                    
-        } |> Async.Start
-
-    let countStr = self.Factory.Backing(<@ self.CountStr @>, "0/0")
     let isRunning = self.Factory.Backing(<@ self.IsRunning @>, false)
     let minPrice = self.Factory.Backing(<@ self.MinPrice @>, 1000M)
     let maxPrice = self.Factory.Backing(<@ self.MaxPrice @>, 1600M)
@@ -235,44 +224,48 @@ type MainWindowViewModel() as self =
     let workLocationLatLong = self.Factory.Backing(<@ self.WorkLocationLatLong @>, None)
     let maxCommuteDuration = self.Factory.Backing(<@ self.MaxCommuteDuration @>, 45)
 
-    let isMock = self.Factory.Backing(<@ self.IsMock @>, false)
-
     do 
-        Application.Current.Exit.Add <| fun _ -> 
-            if not (self.IsMock) then 
-                propertiesViewModel.SaveState()
-        updateWorkLocationLatLong()
         setFilter()
+        updateWorkLocationLatLong()
 
-    member x.NewProperties = propertiesViewModel.NewProperties
+    member x.NewProperties = newPropertiesView
     member x.ShortlistedProperties = propertiesViewModel.ShortlistedProperties
     member x.DiscardedProperties = propertiesViewModel.DiscardedProperties
+    member x.TotalCount = propertiesViewModel.TotalCount
     
-    member x.CountStr with get() = countStr.Value and set value = countStr.Value <- value
     member x.IsRunning with get() = isRunning.Value and set value = isRunning.Value <- value
-    member x.MinPrice with get() = minPrice.Value and set value = minPrice.Value <- value; refreshFilter()
-    member x.MaxPrice with get() = maxPrice.Value and set value = maxPrice.Value <- value; refreshFilter()
-    member x.MinBeds with get() = minBeds.Value and set value = minBeds.Value <- value; refreshFilter()
-    member x.MaxBeds with get() = maxBeds.Value and set value = maxBeds.Value <- value; refreshFilter()
-    member x.MinPhotos with get() = minPhotos.Value and set value = minPhotos.Value <- value; refreshFilter()
-    member x.Search with get() = search.Value and set value = search.Value <- value; refreshFilter()
-    member x.NegativeSearch with get() = negativeSearch.Value and set value = negativeSearch.Value <- value; refreshFilter()
+    member x.MinPrice with get() = minPrice.Value and set value = minPrice.Value <- value; newPropertiesView.Refresh()
+    member x.MaxPrice with get() = maxPrice.Value and set value = maxPrice.Value <- value; newPropertiesView.Refresh()
+    member x.MinBeds with get() = minBeds.Value and set value = minBeds.Value <- value; newPropertiesView.Refresh()
+    member x.MaxBeds with get() = maxBeds.Value and set value = maxBeds.Value <- value; newPropertiesView.Refresh()
+    member x.MinPhotos with get() = minPhotos.Value and set value = minPhotos.Value <- value; newPropertiesView.Refresh()
+    member x.Search with get() = search.Value and set value = search.Value <- value; newPropertiesView.Refresh()
+    member x.NegativeSearch with get() = negativeSearch.Value and set value = negativeSearch.Value <- value; newPropertiesView.Refresh()
     member x.WorkLocation with get() = workLocation.Value and set value = workLocation.Value <- value; updateWorkLocationLatLong()
     member x.WorkLocationLatLong with get() = workLocationLatLong.Value and set value = workLocationLatLong.Value <- value
-    member x.MaxCommuteDuration with get() = maxCommuteDuration.Value and set value = maxCommuteDuration.Value <- value; refreshFilter()
+    member x.MaxCommuteDuration with get() = maxCommuteDuration.Value and set value = maxCommuteDuration.Value <- value; newPropertiesView.Refresh()
 
     member x.StartStopCommand = startStopCommand
 
-    member x.IsMock
-        with get() = isMock.Value 
-        and set value = 
-            isMock.Value <- value
-            if value then                
-                let doc = 
-                    Path.Combine(__SOURCE_DIRECTORY__, "property.html")
-                    |> File.ReadAllText
-                    |> HtmlDocument.Parse                
-                propertiesViewModel.Add(propertySites.[0].ParsePropertyPage doc Property.Mock) |> ignore
+    new() =
+        let propertiesViewModel = PropertiesViewModel()
+        propertiesViewModel.LoadState()
+        Application.Current.Exit.Add <| fun _ -> propertiesViewModel.SaveState()
+        MainWindowViewModel(propertiesViewModel)
+
+type MockMainWindowViewModel() = 
+    inherit MainWindowViewModel(MockMainWindowViewModel.GetMockData())
+
+    static member private GetMockData() =
+        let propertiesViewModel = PropertiesViewModel()
+        let doc = 
+            Path.Combine(__SOURCE_DIRECTORY__, "property.html")
+            |> File.ReadAllText
+            |> HtmlDocument.Parse
+        let mockProperty = (Zoopla.T() :> IPropertySite).ParsePropertyPage doc Property.Mock
+        let propertyViewModel = propertiesViewModel.Add mockProperty
+        propertyViewModel.CommuteDuration <- Some 25
+        propertiesViewModel
 
 type ListConverter() = 
     inherit ConverterToStringMarkupExtension<string list>()

@@ -11,7 +11,7 @@
 
     <UserControl.Resources>
 
-        <local:MainWindowViewModel x:Key="MockData" IsMock="true" />
+        <local:MockMainWindowViewModel x:Key="MockData" />
         
         <DataTemplate x:Key="Vertical" DataType="local:Property">
             <StackPanel>

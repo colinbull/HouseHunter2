@@ -40,7 +40,9 @@
                                 </Style>
                             </Button.Style>
                         </Button>
-                        <TextBlock Margin="5,0" Text="{Binding CountStr}" />
+                        <TextBlock Margin="5,0,0,0" Text="{Binding NewProperties.Count}" />
+                        <TextBlock Margin="0" Text="/" />
+                        <TextBlock Margin="0,0,5,0" Text="{Binding TotalCount}" />
                         <TextBlock Text="Bedrooms:" />
                         <TextBox Width="20" Text="{Binding MinBeds}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
                         <TextBlock Text="to" />
@@ -55,7 +57,7 @@
                         <TextBox Width="150" Text="{Binding Search, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Text="but not" />
                         <TextBox Width="230" Text="{Binding NegativeSearch, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
-                        <TextBlock Text="Commute duration to" />
+                        <TextBlock Text="Commute to" />
                         <TextBox Width="100" Text="{Binding WorkLocation, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Text="less than" />
                         <TextBox Width="40" Text="{Binding MaxCommuteDuration, Delay=250, UpdateSourceTrigger=PropertyChanged}" />

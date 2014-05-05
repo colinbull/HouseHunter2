@@ -59,8 +59,8 @@ type PropertyViewModel(property:Property, status, onStatusChanged) as self =
     member x.Property = property
 
     member x.Photos =
-        x.Property.Photos @ [ "https://maps.googleapis.com/maps/api/staticmap?zoom=15&size=500x250&sensor=false&markers=" + x.Property.LatLong.ToString()
-                              "https://maps.googleapis.com/maps/api/staticmap?zoom=12&size=500x250&sensor=false&markers=" + x.Property.LatLong.ToString() ]
+        x.Property.Photos @ [ "https://maps.googleapis.com/maps/api/staticmap?zoom=15&size=500x250&sensor=false&markers=" + x.Property.LatLong.ToString() + "&key=AIzaSyD_FxyVWxPqbfT3zMle7OtDx_vF-LnD97I"
+                              "https://maps.googleapis.com/maps/api/staticmap?zoom=12&size=500x250&sensor=false&markers=" + x.Property.LatLong.ToString() + "&key=AIzaSyD_FxyVWxPqbfT3zMle7OtDx_vF-LnD97I" ]
 
     member x.MapUrl =
         (GoogleMapsQuery x.Property.LatLong).Url
@@ -230,15 +230,15 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel) as self =
 
     let isRunning = self.Factory.Backing(<@ self.IsRunning @>, false)
     let minPrice = self.Factory.Backing(<@ self.MinPrice @>, 1000M)
-    let maxPrice = self.Factory.Backing(<@ self.MaxPrice @>, 1600M)
-    let minBeds = self.Factory.Backing(<@ self.MinBeds @>, 1)
+    let maxPrice = self.Factory.Backing(<@ self.MaxPrice @>, 1500M)
+    let minBeds = self.Factory.Backing(<@ self.MinBeds @>, 2)
     let maxBeds = self.Factory.Backing(<@ self.MaxBeds @>, 3)
     let minPhotos = self.Factory.Backing(<@ self.MinPhotos @>, 3)
     let search = self.Factory.Backing(<@ self.Search @>, "wooden floor")
     let negativeSearch = self.Factory.Backing(<@ self.NegativeSearch @>, "stratford | woolwich | croydon | peckham")
     let workLocation = self.Factory.Backing(<@ self.WorkLocation @>, "London Victoria")
     let workLocationLatLong = self.Factory.Backing(<@ self.WorkLocationLatLong @>, None)
-    let maxCommuteDuration = self.Factory.Backing(<@ self.MaxCommuteDuration @>, 45)
+    let maxCommuteDuration = self.Factory.Backing(<@ self.MaxCommuteDuration @>, 30)
 
     do 
         setFilter()

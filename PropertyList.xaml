@@ -40,7 +40,7 @@
                                            HorizontalScrollBarVisibility="Auto"
                                            CanContentScroll="False"
                                            Focusable="False">
-                    <ItemsControl ItemsSource="{Binding Property.Photos}" Margin="0">
+                    <ItemsControl ItemsSource="{Binding Photos}" Margin="0">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <StackPanel Orientation="Horizontal" />
@@ -100,10 +100,10 @@
 
         <GridSplitter ResizeDirection="Columns" Grid.Column="1" ResizeBehavior="PreviousAndNext" Width="1" Background="Gray" />
 
-        <ScrollViewer Grid.Column="2" DataContext="{Binding SelectedItem.Property, ElementName=list}" d:DataContext="{Binding NewPropertiesView[0].Property, Source={StaticResource MockData}}">
+        <ScrollViewer Grid.Column="2" DataContext="{Binding SelectedItem, ElementName=list}" d:DataContext="{Binding NewPropertiesView[0], Source={StaticResource MockData}}">
             <StackPanel>
-                <ContentPresenter Margin="5" Content="{Binding}" ContentTemplate="{StaticResource Vertical}" />
-                <ItemsControl ItemsSource="{Binding Links}">
+                <ContentPresenter Margin="5" Content="{Binding Property}" ContentTemplate="{StaticResource Vertical}" />
+                <ItemsControl ItemsSource="{Binding Property.Links}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <ContentPresenter Content="{Binding Converter={local:HyperlinkConverter}}" Margin="5,2" />

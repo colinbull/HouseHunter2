@@ -54,9 +54,13 @@ type PropertyViewModel(property:Property, status, onStatusChanged) as self =
     
     let commuteDuration = self.Factory.Backing(<@ self.CommuteDuration @>, None)
 
-    member x.CommuteDuration with get() : (LatLong * int) option = commuteDuration.Value and set value = commuteDuration.Value <- value
+    member x.CommuteDuration with get() = commuteDuration.Value and set value = commuteDuration.Value <- value
 
     member x.Property = property
+
+    member x.Photos =
+        x.Property.Photos @ [ "https://maps.googleapis.com/maps/api/staticmap?zoom=15&size=500x250&sensor=false&markers=" + x.Property.LatLong.ToString()
+                              "https://maps.googleapis.com/maps/api/staticmap?zoom=12&size=500x250&sensor=false&markers=" + x.Property.LatLong.ToString() ]
 
     member x.SelectCommand = selectCommand
     member x.DiscardCommand = discardCommand

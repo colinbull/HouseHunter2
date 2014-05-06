@@ -64,27 +64,11 @@ type Crawler(processedPropertyUrls, addProperty, propertySites) =
 
     let processedPropertyUrls = ref (Set.ofList processedPropertyUrls)
     
-    // rightmove closes some connections
-    let rec getWithRetries n url = async {
-        try
-            return! Http.AsyncRequestString url
-        with e ->
-            if n > 0 then
-                do! Async.Sleep 5000
-                return! getWithRetries (n - 1) url
-            else
-                raise e
-                return Unchecked.defaultof<_>
-    }
-
-    let getWithRetries = getWithRetries 3
-
     let rec processPage (propertySite:IPropertySite) url = async {
 
-        //Console.WriteLine (sprintf "Processing %s" url)
         try
 
-            let! html = getWithRetries url
+            let! html = Http.AsyncRequestStringWithRetriesAndLogging url
             let doc = HtmlDocument.Parse html
     
             let properties, nextPageUrl = propertySite.ParseListingPage doc
@@ -96,10 +80,9 @@ type Crawler(processedPropertyUrls, addProperty, propertySites) =
 
                     let url = property.Url
                     
-                    //Console.WriteLine (sprintf "Processing %s" url)
                     try
                     
-                        let! html = getWithRetries url
+                        let! html = Http.AsyncRequestStringWithRetriesAndLogging url
                         let doc = HtmlDocument.Parse html
 
                         let property = propertySite.ParsePropertyPage doc property

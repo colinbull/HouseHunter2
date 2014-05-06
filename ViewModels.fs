@@ -170,7 +170,7 @@ type PropertiesViewModel() as self =
     member x.LoadState getWorkLocationLatLong1 getWorkLocationLatLong2 = loadState getWorkLocationLatLong1 getWorkLocationLatLong2
     member x.SaveState() = saveState()
 
-type MainWindowViewModel(propertiesViewModel:PropertiesViewModel, loadState:bool) as self = 
+type MainWindowViewModel(propertiesViewModel:PropertiesViewModel, mock:bool) as self = 
     inherit ViewModelBase()
 
     let newPropertiesView = CollectionViewSource.GetDefaultView(propertiesViewModel.NewProperties) :?> ListCollectionView
@@ -330,11 +330,12 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel, loadState:bool
     let maxCommuteDuration = self.Factory.Backing(<@ self.MaxCommuteDuration @>, 30)
 
     do 
-        if loadState then
+        if not mock then
+            Application.Current.Exit.Add <| fun _ -> propertiesViewModel.SaveState()
             propertiesViewModel.LoadState (fun () -> self.WorkLocationLatLong1) (fun () -> self.WorkLocationLatLong2)
-        updateWorkLocationLatLong1()
-        updateWorkLocationLatLong2()
-        setFilter()
+            updateWorkLocationLatLong1()
+            updateWorkLocationLatLong2()
+            setFilter()
 
     member x.NewPropertiesView = newPropertiesView
     member x.Properties = propertiesViewModel
@@ -356,13 +357,10 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel, loadState:bool
     member x.StartStopCommand = startStopCommand
     member x.SaveStateCommand = saveStateCommand
 
-    new() =
-        let propertiesViewModel = PropertiesViewModel()
-        Application.Current.Exit.Add <| fun _ -> propertiesViewModel.SaveState()
-        MainWindowViewModel(propertiesViewModel, true)
+    new() = MainWindowViewModel(PropertiesViewModel(), false)
 
 type MockMainWindowViewModel() = 
-    inherit MainWindowViewModel(MockMainWindowViewModel.GetMockData(), false)
+    inherit MainWindowViewModel(MockMainWindowViewModel.GetMockData(), true)
 
     static member private GetMockData() =
         let propertiesViewModel = PropertiesViewModel()

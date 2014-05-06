@@ -38,7 +38,7 @@ type GoogleMapsQuery =
 
     static member GetCommuteDuration homeLocation workLocation = async {
         let url = GoogleMapsDirectionsAt9amNextWorkDay(homeLocation, workLocation).Url + "&output=dragdir"
-        let! str = Http.AsyncRequestString url
+        let! str = Http.AsyncRequestStringWithRetriesAndLogging url
         let pos = str.IndexOf("tooltipHtml:\"") + "tooltipHtml:\"".Length
         let str = str.Substring(pos)
         let pos = str.IndexOf("\"")

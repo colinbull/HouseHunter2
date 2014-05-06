@@ -28,6 +28,33 @@ module String =
     let private wsRegex = new Regex<"\s+">()
     let removeNewlines (s:string) = wsRegex.Replace(s |> trim |> replace "\r" " " |> replace "\n"  " ", " ")
 
+module Http =
+
+    open System
+    open System.Threading
+    open FSharp.Data
+
+    let rec private getWithRetries n url = async {
+        try
+            return! Http.AsyncRequestString url
+        with e ->
+            if n > 0 then
+                do! Async.Sleep 5000
+                return! getWithRetries (n - 1) url
+            else
+                raise e
+                return Unchecked.defaultof<_>
+    }
+
+    let mutable count = 0
+
+    let AsyncRequestStringWithRetriesAndLogging url = async {
+        Console.WriteLine (sprintf "%d %s" (Interlocked.Increment &count) url)
+        let! response = getWithRetries 3 url
+        Console.WriteLine (sprintf "%d" (Interlocked.Decrement &count))
+        return response
+    }
+
 module HtmlAgilityPack = 
 
     type HtmlDocument with 

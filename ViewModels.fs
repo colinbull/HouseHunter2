@@ -8,6 +8,7 @@ open System.Windows
 open System.Windows.Controls
 open System.Windows.Data
 open System.Windows.Documents
+open System.Windows.Input
 open System.Threading
 open HtmlAgilityPack
 open FsWpf
@@ -213,6 +214,17 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel, mock:bool) as 
                 && (self.NegativeSearch = "" || not (propertyMatchesQuery self.NegativeSearch property))
             showListing
 
+    let withMouseWait f =
+        let previous = Mouse.OverrideCursor
+        Mouse.OverrideCursor <- Cursors.Wait
+        try
+            f()
+        finally
+            Mouse.OverrideCursor <- previous
+
+    let refreshFilter() =
+        withMouseWait <| fun () -> newPropertiesView.Refresh()
+
     // TODO: this needs to be cancelled
     let calcCommuteDuration1 latLong (propertyViewModel:PropertyViewModel) = Async.CatchAndLog ("calcCommuteDuration1 " + propertyViewModel.Property.Url) <| async {
         let! duration = GoogleMapsQuery.GetCommuteDuration propertyViewModel.Property.LatLong latLong
@@ -343,18 +355,18 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel, mock:bool) as 
     member x.Properties = propertiesViewModel
     
     member x.IsRunning with get() = isRunning.Value and set value = isRunning.Value <- value
-    member x.MinPrice with get() = minPrice.Value and set value = minPrice.Value <- value; newPropertiesView.Refresh()
-    member x.MaxPrice with get() = maxPrice.Value and set value = maxPrice.Value <- value; newPropertiesView.Refresh()
-    member x.MinBeds with get() = minBeds.Value and set value = minBeds.Value <- value; newPropertiesView.Refresh()
-    member x.MaxBeds with get() = maxBeds.Value and set value = maxBeds.Value <- value; newPropertiesView.Refresh()
-    member x.MinPhotos with get() = minPhotos.Value and set value = minPhotos.Value <- value; newPropertiesView.Refresh()
-    member x.Search with get() = search.Value and set value = search.Value <- value; newPropertiesView.Refresh()
-    member x.NegativeSearch with get() = negativeSearch.Value and set value = negativeSearch.Value <- value; newPropertiesView.Refresh()
+    member x.MinPrice with get() = minPrice.Value and set value = minPrice.Value <- value; refreshFilter()
+    member x.MaxPrice with get() = maxPrice.Value and set value = maxPrice.Value <- value; refreshFilter()
+    member x.MinBeds with get() = minBeds.Value and set value = minBeds.Value <- value; refreshFilter()
+    member x.MaxBeds with get() = maxBeds.Value and set value = maxBeds.Value <- value; refreshFilter()
+    member x.MinPhotos with get() = minPhotos.Value and set value = minPhotos.Value <- value; refreshFilter()
+    member x.Search with get() = search.Value and set value = search.Value <- value; refreshFilter()
+    member x.NegativeSearch with get() = negativeSearch.Value and set value = negativeSearch.Value <- value; refreshFilter()
     member x.WorkLocation1 with get() = workLocation1.Value and set value = workLocation1.Value <- value; updateWorkLocationLatLong1()
     member x.WorkLocation2 with get() = workLocation2.Value and set value = workLocation2.Value <- value; updateWorkLocationLatLong2()
-    member x.WorkLocationLatLong1 with get() = workLocationLatLong1.Value and set value = workLocationLatLong1.Value <- value; newPropertiesView.Refresh()
-    member x.WorkLocationLatLong2 with get() = workLocationLatLong2.Value and set value = workLocationLatLong2.Value <- value; newPropertiesView.Refresh()
-    member x.MaxCommuteDuration with get() = maxCommuteDuration.Value and set value = maxCommuteDuration.Value <- value; newPropertiesView.Refresh()
+    member x.WorkLocationLatLong1 with get() = workLocationLatLong1.Value and set value = workLocationLatLong1.Value <- value; refreshFilter()
+    member x.WorkLocationLatLong2 with get() = workLocationLatLong2.Value and set value = workLocationLatLong2.Value <- value; refreshFilter()
+    member x.MaxCommuteDuration with get() = maxCommuteDuration.Value and set value = maxCommuteDuration.Value <- value; refreshFilter()
 
     member x.StartStopCommand = startStopCommand
     member x.SaveStateCommand = saveStateCommand

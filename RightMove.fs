@@ -232,7 +232,8 @@ type T() =
             let properties = 
                 doc
                 |> getListingItems
-                |> Seq.map parseListingItem
+                |> Seq.where (descendants "span" >> Seq.exists (hasClass "propertyUnavailable") >> not)
+                |> Seq.choose (Option.fromTry "listingItem" parseListingItem)
             let nextPageUrl = 
                 getNextListingPage doc
             properties, nextPageUrl

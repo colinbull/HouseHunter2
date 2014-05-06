@@ -22,6 +22,12 @@ module Option =
     let mapSprintf formatStr = mapString (sprintf formatStr)
     let mapList f = Option.map f >> get []
     let fromTryParse (success, value) = if success then Some value else None
+    let fromTry id f arg =
+        try
+            Some (f arg)
+        with e ->
+            Console.WriteLine (sprintf "Failed to parse %s:\n%O" id e)
+            None
 
 module String =
     
@@ -33,11 +39,11 @@ module String =
 
 module Async =
 
-    let CatchAndLog url computation = async {
+    let CatchAndLog id computation = async {
         try
             return! computation
         with e ->
-            Console.WriteLine (sprintf "Failed to parse %s:\n%O" url e)
+            Console.WriteLine (sprintf "Failed to parse %s:\n%O" id e)
             return Unchecked.defaultof<_>
     }
 

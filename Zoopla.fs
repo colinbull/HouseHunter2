@@ -197,7 +197,7 @@ type T() =
             let properties = 
                 doc
                 |> getListingItems
-                |> Seq.map parseListingItem
+                |> Seq.choose (Option.fromTry "listingItem" parseListingItem)
             let nextPageUrl = 
                 getNextListingPage doc
             properties, nextPageUrl

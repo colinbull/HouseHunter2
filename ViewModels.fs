@@ -197,7 +197,7 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel, mock:bool) as 
         | (Some _, Some (_, duration1)), (Some _, Some (_, duration2)) -> duration1 <= self.MaxCommuteDuration || duration2 <= self.MaxCommuteDuration
         | (Some _, Some (_, duration1)), _                             -> duration1 <= self.MaxCommuteDuration
         | _                            , (Some _, Some (_, duration2)) ->                                         duration2 <= self.MaxCommuteDuration
-        | _ -> true
+        | _ -> false
 
     let setFilter() =
         newPropertiesView.Filter <- fun property -> 

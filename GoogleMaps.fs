@@ -26,10 +26,10 @@ type GoogleMapsQuery =
     member x.Url =
         let baseUrl = "http://maps.google.co.uk/"
         match x with
-        | GoogleMapsQuery center -> sprintf "%s?q=%O" baseUrl center
+        | GoogleMapsQuery center -> sprintf "%s?q=%O&output=classic" baseUrl center
         | GoogleMapsDirectionsAt9amNextWorkDay(source, destination) -> GoogleMapsDirections(source, destination, DateHelpers.nextWorkDayAt9am).Url
         | GoogleMapsDirections(source, destination, date) -> 
-            sprintf "%s?dirflg=r&ttype=arr&time=%s&date=%s&saddr=%O&daddr=%O" 
+            sprintf "%s?dirflg=r&ttype=arr&time=%s&date=%s&saddr=%O&daddr=%O&output=classic" 
                     baseUrl 
                     (date.ToString("h:mmtt"))
                     (date.ToString("dd/MM/yy"))

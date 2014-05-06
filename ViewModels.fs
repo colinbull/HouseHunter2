@@ -405,16 +405,20 @@ type HyperlinkConverter() =
     inherit ConverterMarkupExtension<string*string, TextBlock>()
     override x.Convert arg =
         let text, url = arg
-        let hyperLink = Hyperlink(Run(text), NavigateUri = Uri url)
-        hyperLink.RequestNavigate.Add <| fun _ ->
-            Process.Start url |> ignore
-        TextBlock(hyperLink)
+        try
+            let hyperLink = Hyperlink(Run(text), NavigateUri = Uri url)
+            hyperLink.RequestNavigate.Add <| fun _ ->
+                Process.Start url |> ignore
+            TextBlock(hyperLink)
+        with _ -> null
 
 type HyperlinkConverterWithParameter() =
     inherit ConverterWithParameterMarkupExtension<string, string, TextBlock>()
     override x.Convert url text =
         if url = null then null else
-        let hyperLink = Hyperlink(Run(text), NavigateUri = Uri url)
-        hyperLink.RequestNavigate.Add <| fun _ ->
-            Process.Start url |> ignore
-        TextBlock(hyperLink)
+        try
+            let hyperLink = Hyperlink(Run(text), NavigateUri = Uri url)
+            hyperLink.RequestNavigate.Add <| fun _ ->
+                Process.Start url |> ignore
+            TextBlock(hyperLink)
+        with _ -> null

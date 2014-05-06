@@ -56,7 +56,7 @@ type Property =
 
 type IPropertySite =
 
-    abstract GetFirstListingPage : minPrice:decimal * maxPrice:decimal * minBeds:int * maxBeds:int -> string
+    abstract GetFirstListingPages : minPrice:decimal * maxPrice:decimal * minBeds:int * maxBeds:int -> string list
     abstract ParseListingPage : doc:HtmlDocument -> properties:Property seq * nextPageUrl:string option
     abstract ParsePropertyPage : doc:HtmlDocument -> property:Property -> Property
 
@@ -102,7 +102,6 @@ type Crawler(processedPropertyUrls, addProperty, propertySites) =
 
     member x.Crawl args =
         propertySites
-        |> List.map (fun (propertySite:IPropertySite) -> propertySite.GetFirstListingPage args |> processPage propertySite)
-        |> Seq.toArray
+        |> List.collect (fun (propertySite:IPropertySite) -> propertySite.GetFirstListingPages args |> List.map (processPage propertySite))
         |> Async.Parallel
         |> Async.Ignore

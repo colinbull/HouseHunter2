@@ -22,25 +22,24 @@ open HouseHunter
 let baseUrl = "http://www.rightmove.co.uk"
     
 let adjustToRange possiblePrices minPrice maxPrice =
-    let minPrice = minPrice |> Option.bind (fun minPrice -> possiblePrices |> List.rev |> List.tryFind (fun price -> price <= minPrice))
-    let maxPrice = maxPrice |> Option.bind (fun maxPrice -> possiblePrices |> List.tryFind (fun price -> price >= maxPrice))
-    minPrice, maxPrice
+    possiblePrices |> Seq.skipWhile (fun x -> x < minPrice) |> Seq.takeWhile (fun x -> x <= maxPrice) |> Seq.pairwise
     
-let getFirstListingPage minPrice maxPrice minBeds maxBeds =
+let getFirstListingPages minPrice maxPrice minBeds maxBeds = [
     let possiblePrices = 
         [100..50..500] @ [600..100..1200] @ [1250] @ [1300..100..1500] @ [1750..250..3000] @ [3500..500..7000] @ [8000..1000..10000] @ [12500..2500..20000] @ [25000..5000..40000]
         |> List.map decimal
-    let minPrice, maxPrice = adjustToRange possiblePrices minPrice maxPrice
-    let minPrice = minPrice |> Option.mapSprintf "&minPrice=%M"
-    let maxPrice = maxPrice |> Option.mapSprintf "&maxPrice=%M"
-    let minBeds = minBeds |> Option.mapSprintf "&minBedrooms=%d"
-    let maxBeds = maxBeds |> Option.mapSprintf "&maxBedrooms=%d"
-    baseUrl
-    + "/property-to-rent/find.html?locationIdentifier=REGION%5E87490&retirement=false&sortType=6&numberOfPropertiesPerPage=50"
-    + minPrice 
-    + maxPrice 
-    + minBeds
-    + maxBeds
+    for minPrice, maxPrice in adjustToRange possiblePrices minPrice maxPrice do
+        let minPrice = minPrice |> sprintf "&minPrice=%M"
+        let maxPrice = maxPrice |> sprintf "&maxPrice=%M"
+        for beds in minBeds..maxBeds do
+            let minBeds = beds |> sprintf "&minBedrooms=%d"
+            let maxBeds = beds |> sprintf "&maxBedrooms=%d"
+            yield baseUrl
+                  + "/property-to-rent/find.html?locationIdentifier=REGION%5E87490&retirement=false&sortType=6&numberOfPropertiesPerPage=50"
+                  + minPrice 
+                  + maxPrice 
+                  + minBeds
+                  + maxBeds ]
 
 let getListingItems (doc:HtmlDocument) =
     doc.DocumentNode.Descendants("li")
@@ -225,8 +224,8 @@ type T() =
 
     interface IPropertySite with
 
-        member x.GetFirstListingPage(minPrice, maxPrice, minBeds, maxBeds) =
-            getFirstListingPage (Some minPrice) (Some maxPrice) (Some minBeds) (Some maxBeds)
+        member x.GetFirstListingPages(minPrice, maxPrice, minBeds, maxBeds) =
+            getFirstListingPages minPrice maxPrice minBeds maxBeds
 
         member x.ParseListingPage(doc) = 
             let properties = 

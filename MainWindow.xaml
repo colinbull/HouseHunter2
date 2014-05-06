@@ -46,13 +46,13 @@
                         <TextBlock Margin="0,0,5,0" Text="{Binding Properties.TotalCount}" />
                         <Button Width="35" Command="{Binding SaveStateCommand}" Content="Save" Margin="5,0" />
                         <TextBlock Text="Bedrooms" />
-                        <TextBox Width="20" Text="{Binding MinBeds}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
+                        <TextBox Width="20" Text="{Binding MinBeds, Delay=250, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
                         <TextBlock Text="to" />
-                        <TextBox Width="20" Text="{Binding MaxBeds}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
+                        <TextBox Width="20" Text="{Binding MaxBeds, Delay=250, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
                         <TextBlock Text="Price per month" />
-                        <TextBox Width="40" Text="{Binding MinPrice}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
+                        <TextBox Width="40" Text="{Binding MinPrice, Delay=250, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
                         <TextBlock Text="to" />
-                        <TextBox Width="40" Text="{Binding MaxPrice}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
+                        <TextBox Width="40" Text="{Binding MaxPrice, Delay=250, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsRunning, Converter={fsWpf:BooleanInverterConverter}}" />
                         <TextBlock Text="Min. Photos"/>
                         <TextBox Width="20" Text="{Binding MinPhotos, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Text="Containing" />

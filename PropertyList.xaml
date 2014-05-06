@@ -48,7 +48,7 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Image Source="{Binding}" Stretch="Uniform" Height="250" />
+                                <Image Source="{Binding}" Stretch="Uniform" Height="400" />
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

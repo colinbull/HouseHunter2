@@ -110,7 +110,7 @@
             </ListBox.ItemTemplate>
         </ListBox>
 
-        <GridSplitter ResizeDirection="Columns" Grid.Column="1" ResizeBehavior="PreviousAndNext" Width="3" Background="Gray" />
+        <GridSplitter ResizeDirection="Columns" Grid.Column="1" ResizeBehavior="PreviousAndNext" Width="2" Background="Gray" />
 
         <ScrollViewer Grid.Column="2" DataContext="{Binding SelectedItem, ElementName=list}" d:DataContext="{Binding Properties.NewProperties[0], Source={StaticResource MockData}}">
             <StackPanel>

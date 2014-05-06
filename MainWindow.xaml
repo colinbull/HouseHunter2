@@ -58,11 +58,11 @@
                         <TextBlock Text="Containing" />
                         <TextBox Width="100" Text="{Binding Search, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Text="but not" />
-                        <TextBox Width="230" Text="{Binding NegativeSearch, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBox Width="100" Text="{Binding NegativeSearch, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Text="Commute to" />
                         <TextBox Width="100" Text="{Binding WorkLocation1, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Text="or" />
-                        <TextBox Width="130" Text="{Binding WorkLocation2, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBox Width="100" Text="{Binding WorkLocation2, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Text="less than" />
                         <TextBox Width="40" Text="{Binding MaxCommuteDuration, Delay=250, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Text="mins" />

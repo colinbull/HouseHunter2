@@ -213,12 +213,14 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel, mock:bool) as 
                 && (self.NegativeSearch = "" || not (propertyMatchesQuery self.NegativeSearch property))
             showListing
 
-    let calcCommuteDuration1 latLong (propertyViewModel:PropertyViewModel) = async {
+    // TODO: this needs to be cancelled
+    let calcCommuteDuration1 latLong (propertyViewModel:PropertyViewModel) = Async.CatchAndLog ("calcCommuteDuration1 " + propertyViewModel.Property.Url) <| async {
         let! duration = GoogleMapsQuery.GetCommuteDuration propertyViewModel.Property.LatLong latLong
         propertyViewModel.CommuteDuration1 <- Some (latLong, duration)
     }
 
-    let calcCommuteDuration2 latLong (propertyViewModel:PropertyViewModel) = async {
+    // TODO: this needs to be cancelled
+    let calcCommuteDuration2 latLong (propertyViewModel:PropertyViewModel) = Async.CatchAndLog ("calcCommuteDuration2 " + propertyViewModel.Property.Url) <| async {
         let! duration = GoogleMapsQuery.GetCommuteDuration propertyViewModel.Property.LatLong latLong
         propertyViewModel.CommuteDuration2 <- Some (latLong, duration)
     }
@@ -243,10 +245,10 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel, mock:bool) as 
                             | Some (latLong, _) when latLong = newLatLong -> ()
                             | _ ->
                                 property.CommuteDuration1 <- None
-                                calcCommuteDuration1 newLatLong property |> Async.Catch |> Async.Ignore |> Async.Start
+                                calcCommuteDuration1 newLatLong property |> Async.Start
                 with _ ->
                     self.WorkLocationLatLong1 <- None
-        } |> Async.Catch |> Async.Ignore |> Async.Start
+        } |> Async.CatchAndLog "updateWorkLocationLatLong1" |> Async.Start
 
     let updateWorkLocationLatLong2() =
         async {
@@ -266,10 +268,10 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel, mock:bool) as 
                             | Some (latLong, _) when latLong = newLatLong -> ()
                             | _ ->
                                 property.CommuteDuration2 <- None
-                                calcCommuteDuration2 newLatLong property |> Async.Catch |> Async.Ignore |> Async.Start
+                                calcCommuteDuration2 newLatLong property |> Async.Start
                 with _ ->
                     self.WorkLocationLatLong2 <- None
-        } |> Async.Catch |> Async.Ignore |> Async.Start
+        } |> Async.CatchAndLog "updateWorkLocationLatLong2" |> Async.Start
 
     let addProperty property = async {
         do! Async.SwitchToContext context
@@ -278,11 +280,11 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel, mock:bool) as 
         match self.WorkLocationLatLong1 with
         | None -> ()
         | Some latLong -> 
-            calcCommuteDuration1 latLong propertyViewModel |> Async.Catch |> Async.Ignore |> Async.Start
+            calcCommuteDuration1 latLong propertyViewModel |> Async.Start
         match self.WorkLocationLatLong2 with
         | None -> ()
         | Some latLong -> 
-            calcCommuteDuration2 latLong propertyViewModel |> Async.Catch |> Async.Ignore |> Async.Start
+            calcCommuteDuration2 latLong propertyViewModel |> Async.Start
     }
 
     let crawler = Crawler(propertiesViewModel.SeenPropertyUrls, addProperty, [ Zoopla.T(); RightMove.T() ])
@@ -321,10 +323,10 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel, mock:bool) as 
     let minBeds = self.Factory.Backing(<@ self.MinBeds @>, 1)
     let maxBeds = self.Factory.Backing(<@ self.MaxBeds @>, 3)
     let minPhotos = self.Factory.Backing(<@ self.MinPhotos @>, 3)
-    let search = self.Factory.Backing(<@ self.Search @>, "wooden floor")
+    let search = self.Factory.Backing(<@ self.Search @>, "wood")
     let negativeSearch = self.Factory.Backing(<@ self.NegativeSearch @>, "stratford | woolwich | croydon | peckham")
     let workLocation1 = self.Factory.Backing(<@ self.WorkLocation1 @>, "London Victoria")
-    let workLocation2 = self.Factory.Backing(<@ self.WorkLocation2 @>, "London Bridge Station")
+    let workLocation2 = self.Factory.Backing(<@ self.WorkLocation2 @>, "Old Street")
     let workLocationLatLong1 = self.Factory.Backing(<@ self.WorkLocationLatLong1 @>, None)
     let workLocationLatLong2 = self.Factory.Backing(<@ self.WorkLocationLatLong2 @>, None)
     let maxCommuteDuration = self.Factory.Backing(<@ self.MaxCommuteDuration @>, 30)

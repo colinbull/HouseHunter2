@@ -1,7 +1,10 @@
 ﻿namespace global
 
-open HtmlAgilityPack
+open System
+open System.Threading
 open FSharp.RegexProvider
+open FSharp.Data
+open HtmlAgilityPack
 
 [<AutoOpen>]
 module Operators =
@@ -28,11 +31,17 @@ module String =
     let private wsRegex = new Regex<"\s+">()
     let removeNewlines (s:string) = wsRegex.Replace(s |> trim |> replace "\r" " " |> replace "\n"  " ", " ")
 
-module Http =
+module Async =
 
-    open System
-    open System.Threading
-    open FSharp.Data
+    let CatchAndLog url computation = async {
+        try
+            return! computation
+        with e ->
+            Console.WriteLine (sprintf "Failed to parse %s:\n%O" url e)
+            return Unchecked.defaultof<_>
+    }
+
+module Http =
 
     let rec private getWithRetries n url = async {
         try
@@ -50,9 +59,10 @@ module Http =
 
     let AsyncRequestStringWithRetriesAndLogging url = async {
         Console.WriteLine (sprintf "%d %s" (Interlocked.Increment &count) url)
-        let! response = getWithRetries 3 url
-        Console.WriteLine (sprintf "%d" (Interlocked.Decrement &count))
-        return response
+        try
+            return! getWithRetries 3 url
+        finally
+            Console.WriteLine (sprintf "%d" (Interlocked.Decrement &count))        
     }
 
 module HtmlAgilityPack = 

@@ -335,7 +335,7 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel, mock:bool) as 
     let minBeds = self.Factory.Backing(<@ self.MinBeds @>, 2)
     let maxBeds = self.Factory.Backing(<@ self.MaxBeds @>, 2)
     let minPhotos = self.Factory.Backing(<@ self.MinPhotos @>, 3)
-    let search = self.Factory.Backing(<@ self.Search @>, "wood | laminate | modern | new | refurbished")
+    let search = self.Factory.Backing(<@ self.Search @>, "wood | laminate | modern | new | refurbished | 2bath | 2 bath | two bath | ensuite | en-suite")
     let negativeSearch = self.Factory.Backing(<@ self.NegativeSearch @>, "stratford | woolwich | croydon | peckham | turnpike lane | hornsey | wood green | arsenal | lewisham | kentish town | deptford | short term | palmers green | Walthamstow | n16 | enfield | barnet | southgate")
     let workLocation1 = self.Factory.Backing(<@ self.WorkLocation1 @>, "London Victoria")
     let workLocation2 = self.Factory.Backing(<@ self.WorkLocation2 @>, "Old Street")

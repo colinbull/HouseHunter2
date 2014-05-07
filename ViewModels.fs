@@ -174,7 +174,7 @@ type PropertiesViewModel() as self =
 type MainWindowViewModel(propertiesViewModel:PropertiesViewModel, mock:bool) as self = 
     inherit ViewModelBase()
 
-    let newPropertiesView = CollectionViewSource.GetDefaultView(propertiesViewModel.NewProperties) :?> ListCollectionView
+    let newPropertiesView = CollectionViewSource(Source = propertiesViewModel.NewProperties).View :?> ListCollectionView
     do 
         newPropertiesView.IsLiveFiltering <- Nullable true
         newPropertiesView.LiveFilteringProperties.Add("CommuteDuration1")
@@ -341,7 +341,7 @@ type MainWindowViewModel(propertiesViewModel:PropertiesViewModel, mock:bool) as 
     let workLocation2 = self.Factory.Backing(<@ self.WorkLocation2 @>, "Old Street")
     let workLocationLatLong1 = self.Factory.Backing(<@ self.WorkLocationLatLong1 @>, None)
     let workLocationLatLong2 = self.Factory.Backing(<@ self.WorkLocationLatLong2 @>, None)
-    let maxCommuteDuration = self.Factory.Backing(<@ self.MaxCommuteDuration @>, 30)
+    let maxCommuteDuration = self.Factory.Backing(<@ self.MaxCommuteDuration @>, 35)
 
     do 
         if not mock then

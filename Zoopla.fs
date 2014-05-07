@@ -32,7 +32,7 @@ let getFirstListingPages minPrice maxPrice minBeds maxBeds = [
         for beds in minBeds..maxBeds do
             let minBeds = beds |> sprintf "&beds_min=%d"
             let maxBeds = beds |> sprintf "&beds_max=%d"
-            yield sprintf "%s/to-rent/property/london/?include_retirement_homes=false&price_frequency=per_month&q=London&results_sort=newest_listings&search_source=home&page_size=100%s%s%s%s"
+            yield sprintf "%s/to-rent/property/london/?include_retirement_homes=false&price_frequency=per_month&q=London&results_sort=newest_listings&search_source=home&page_size=100&furnished_state=unfurnished%s%s%s%s"
                           baseUrl minPrice maxPrice minBeds maxBeds ]    
     
 let getListingItems (doc:HtmlDocument) =

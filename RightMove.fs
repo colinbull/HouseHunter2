@@ -35,7 +35,7 @@ let getFirstListingPages minPrice maxPrice minBeds maxBeds = [
             let minBeds = beds |> sprintf "&minBedrooms=%d"
             let maxBeds = beds |> sprintf "&maxBedrooms=%d"
             yield baseUrl
-                  + "/property-to-rent/find.html?locationIdentifier=REGION%5E87490&retirement=false&sortType=6&numberOfPropertiesPerPage=50"
+                  + "/property-to-rent/find.html?locationIdentifier=REGION%5E87490&retirement=false&sortType=6&numberOfPropertiesPerPage=50&letFurnishType=unfurnished"
                   + minPrice 
                   + maxPrice 
                   + minBeds
